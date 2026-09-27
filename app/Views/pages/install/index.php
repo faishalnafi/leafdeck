@@ -5,6 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= esc($title) ?></title>
     
+    <!-- Favicon & Icons -->
+    <link rel="icon" type="image/png" href="https://support.nafii.my.id/icon/domains.png">
+    <link rel="shortcut icon" type="image/png" href="https://support.nafii.my.id/icon/domains.png">
+    <link rel="apple-touch-icon" href="https://support.nafii.my.id/icon/domains.png">
+
+    <!-- Thumbnail Meta Tags (Open Graph & Twitter) -->
+    <meta property="og:title" content="<?= esc($title) ?>">
+    <meta property="og:description" content="Pemasang Otomatis Platform LeafDeck">
+    <meta property="og:image" content="https://support.nafii.my.id/icon/domains.png">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="<?= esc($title) ?>">
+    <meta name="twitter:image" content="https://support.nafii.my.id/icon/domains.png">
+
     <!-- Google Fonts: Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

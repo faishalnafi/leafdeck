@@ -5,6 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= esc($title ?? 'Login') ?> — LeafDeck</title>
 
+    <!-- Favicon & Icons -->
+    <link rel="icon" type="image/png" href="https://support.nafii.my.id/icon/domains.png">
+    <link rel="shortcut icon" type="image/png" href="https://support.nafii.my.id/icon/domains.png">
+    <link rel="apple-touch-icon" href="https://support.nafii.my.id/icon/domains.png">
+
+    <!-- Thumbnail Meta Tags (Open Graph & Twitter) -->
+    <meta property="og:title" content="<?= esc($title ?? 'Masuk') ?> — LeafDeck">
+    <meta property="og:description" content="Platform Presentasi & E-Book Interaktif SMAN 3 MJK">
+    <meta property="og:image" content="https://support.nafii.my.id/icon/domains.png">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="<?= esc($title ?? 'Masuk') ?> — LeafDeck">
+    <meta name="twitter:image" content="https://support.nafii.my.id/icon/domains.png">
+
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -52,11 +66,11 @@
 
         <!-- Logo -->
         <div class="text-center mb-8">
-            <a href="/" class="inline-flex items-center gap-2 text-2xl font-extrabold text-emerald-600">
-                <span class="material-symbols-rounded text-[32px]">menu_book</span>
-                LeafDeck
+            <a href="/" class="inline-flex items-center gap-2.5 text-2xl font-black text-slate-800 hover:opacity-90 transition-opacity">
+                <img src="https://support.nafii.my.id/icon/domains.png" alt="LeafDeck" class="w-9 h-9 rounded-xl object-contain shadow-2xs">
+                <span>LeafDeck</span>
             </a>
-            <p class="text-slate-500 text-sm mt-1">Unggah, Tampilkan, Inspirasi.</p>
+            <p class="text-slate-500 text-xs mt-1">Platform Presentasi & E-Book Edukasi</p>
         </div>
 
         <!-- Card -->

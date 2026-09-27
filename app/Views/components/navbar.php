@@ -3,9 +3,9 @@
         <div class="flex items-center justify-between h-16">
 
             <!-- Logo -->
-            <a href="/" class="flex items-center gap-2 font-extrabold text-xl text-emerald-600">
-                <span class="material-symbols-rounded text-[28px]">menu_book</span>
-                LeafDeck
+            <a href="/" class="flex items-center gap-2.5 font-black text-xl text-slate-900 hover:opacity-90 transition-opacity">
+                <img src="https://support.nafii.my.id/icon/domains.png" alt="LeafDeck" class="w-7 h-7 rounded-lg object-contain shadow-2xs">
+                <span>LeafDeck</span>
             </a>
 
             <!-- Nav Links (Desktop) -->
