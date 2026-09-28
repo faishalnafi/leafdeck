@@ -175,7 +175,12 @@ class InstallController extends BaseController
     {
         $envPath = ROOTPATH . '.env';
         if (!file_exists($envPath)) {
-            return false;
+            $templatePath = ROOTPATH . 'env';
+            if (file_exists($templatePath)) {
+                copy($templatePath, $envPath);
+            } else {
+                file_put_contents($envPath, '');
+            }
         }
 
         $envContent = file_get_contents($envPath);
