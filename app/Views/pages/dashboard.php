@@ -212,6 +212,15 @@
                 </div>
             </div>
 
+            <!-- Tip untuk Pengguna Flip PDF / FlipBuilder -->
+            <div class="bg-emerald-50/70 border border-emerald-200/80 rounded-xl p-3 flex items-start gap-2.5 text-left text-xs">
+                <span class="material-symbols-rounded text-emerald-600 text-[18px] shrink-0 mt-0.5">tips_and_updates</span>
+                <div class="text-slate-600 leading-relaxed text-[11px]">
+                    <span class="font-bold text-emerald-800">Tips Pengguna Flip PDF / FlipBuilder:</span><br>
+                    Saat publikasi materi, pilih format <strong>*.html</strong> dan centang kotak <strong>"Compress to ZIP after publishing"</strong>. Unggah berkas <strong>.zip</strong> tersebut agar siswa dapat membuka e-book di HP dan laptop tanpa install aplikasi.
+                </div>
+            </div>
+
             <!-- Title Field -->
             <div>
                 <label for="deck-title" class="block text-xs font-semibold text-slate-700 mb-1">Judul Presentasi</label>
