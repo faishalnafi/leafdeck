@@ -4,15 +4,18 @@ namespace App\Controllers\Web;
 
 use App\Controllers\BaseController;
 use App\Services\DeckService;
+use App\Services\FileService;
 use CodeIgniter\Exceptions\PageNotFoundException;
 
 class ViewerController extends BaseController
 {
     protected DeckService $deckService;
+    protected FileService $fileService;
 
     public function __construct()
     {
         $this->deckService = new DeckService();
+        $this->fileService = new FileService();
     }
 
     /**
@@ -44,23 +47,40 @@ class ViewerController extends BaseController
             $this->deckService->incrementViews((string) $nanoId);
         }
 
-        // Tentukan URL muatan: jika paket bundle (uploads/decks/{nanoId}/...), arahkan ke URL storage (lokal atau CDN)
-        $fileService = new \App\Services\FileService();
-        $rawUrl = site_url("raw-deck/{$deck->nano_id}");
+        // Deteksi tipe berkas
+        $ext = strtolower(pathinfo($deck->file_path, PATHINFO_EXTENSION));
+        $fileType = match ($ext) {
+            'pdf'         => 'pdf',
+            'pptx'        => 'pptx',
+            'zip'         => 'zip',
+            'html', 'htm' => 'html',
+            default       => 'html',
+        };
+
         if (str_contains($deck->file_path, "uploads/decks/{$deck->nano_id}/")) {
-            $rawUrl = $fileService->getUrl($deck->file_path);
+            $fileType = 'zip';
         }
 
+        // Tentukan URL muatan: jika paket bundle (uploads/decks/{nanoId}/...), arahkan ke URL storage (lokal atau CDN)
+        $rawUrl = site_url("raw-deck/{$deck->nano_id}");
+        if (str_contains($deck->file_path, "uploads/decks/{$deck->nano_id}/")) {
+            $rawUrl = $this->fileService->getUrl($deck->file_path);
+        }
+
+        $downloadUrl = site_url("download-deck/{$deck->nano_id}");
+
         return view('pages/viewer', [
-            'title'   => $deck->title . ' — LeafDeck Viewer',
-            'deck'    => $deck,
-            'rawUrl'  => $rawUrl,
-            'isOwner' => $isOwner,
+            'title'       => $deck->title . ' — LeafDeck Viewer',
+            'deck'        => $deck,
+            'rawUrl'      => $rawUrl,
+            'downloadUrl' => $downloadUrl,
+            'fileType'    => $fileType,
+            'isOwner'     => $isOwner,
         ]);
     }
 
     /**
-     * Mengalirkan isi file HTML murni ke iframe viewer
+     * Mengalirkan isi file murni (HTML, PDF, PPTX) ke iframe viewer
      */
     public function rawHtml($nanoId = null)
     {
@@ -80,17 +100,77 @@ class ViewerController extends BaseController
         }
 
         if (str_contains($deck->file_path, "uploads/decks/{$deck->nano_id}/")) {
-            $fileService = new \App\Services\FileService();
-            return redirect()->to($fileService->getUrl($deck->file_path));
+            return redirect()->to($this->fileService->getUrl($deck->file_path));
         }
 
-        $html = $this->deckService->getHtmlContent($deck);
-        if ($html === null) {
+        $content = $this->deckService->getHtmlContent($deck);
+        if ($content === null) {
             throw PageNotFoundException::forPageNotFound('File materi di storage tidak ditemukan');
+        }
+
+        $ext = strtolower(pathinfo($deck->file_path, PATHINFO_EXTENSION));
+        $cleanTitle = preg_replace('/[^a-zA-Z0-9_\-\.]/', '_', $deck->title);
+
+        if ($ext === 'pdf') {
+            return $this->response
+                ->setHeader('Content-Type', 'application/pdf')
+                ->setHeader('Content-Disposition', 'inline; filename="' . $cleanTitle . '.pdf"')
+                ->setBody($content);
+        }
+
+        if ($ext === 'pptx') {
+            return $this->response
+                ->setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.presentationml.presentation')
+                ->setHeader('Content-Disposition', 'inline; filename="' . $cleanTitle . '.pptx"')
+                ->setBody($content);
         }
 
         return $this->response
             ->setHeader('Content-Type', 'text/html; charset=UTF-8')
-            ->setBody($html);
+            ->setBody($content);
+    }
+
+    /**
+     * Mengunduh berkas materi presentasi asli
+     */
+    public function download($nanoId = null)
+    {
+        $deck = $this->deckService->findByNanoId((string) $nanoId);
+        if (!$deck) {
+            throw PageNotFoundException::forPageNotFound('File presentasi tidak ditemukan');
+        }
+
+        // Cek hak akses
+        $currentUserId = session()->get('user_id');
+        $currentUserRole = session()->get('role');
+        $isOwner = $currentUserId && ((int) $deck->user_id === (int) $currentUserId);
+        $isAdmin = in_array($currentUserRole, ['superadmin', 'admin'], true);
+
+        if ((int) $deck->is_public !== 1 && !$isOwner && !$isAdmin) {
+            return $this->response->setStatusCode(403)->setBody('Akses ditolak. Materi ini disetel privat.');
+        }
+
+        $ext = strtolower(pathinfo($deck->file_path, PATHINFO_EXTENSION));
+        if (empty($ext) || str_contains($deck->file_path, "uploads/decks/{$deck->nano_id}/")) {
+            $ext = 'zip';
+        }
+
+        $cleanTitle = preg_replace('/[^a-zA-Z0-9_\-\.]/', '_', $deck->title) . '.' . $ext;
+        $content = $this->deckService->getHtmlContent($deck);
+
+        if ($content === null) {
+            // Jika file fisik ada di storage atau direct URL
+            $fullPath = $this->fileService->getAbsolutePath($deck->file_path);
+            if (file_exists($fullPath)) {
+                return $this->response->download($fullPath, null)->setFileName($cleanTitle);
+            }
+            throw PageNotFoundException::forPageNotFound('Berkas materi di storage tidak ditemukan.');
+        }
+
+        $mime = $this->fileService->detectMimeType($deck->file_path);
+        return $this->response
+            ->setHeader('Content-Type', $mime)
+            ->setHeader('Content-Disposition', 'attachment; filename="' . $cleanTitle . '"')
+            ->setBody($content);
     }
 }

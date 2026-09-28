@@ -78,6 +78,12 @@ class Storage extends BaseConfig
         // Ambil dari environment variables (.env)
         $this->defaultDriver = env('STORAGE_DRIVER', $this->defaultDriver);
 
+        // Local Storage Path (Tersentralisasi di uploads/decks)
+        $localRelPath = (string) (env('LOCAL_STORAGE_PATH') ?? 'uploads/decks');
+        $localRelPath = trim(str_replace(['\\', '/'], DIRECTORY_SEPARATOR, $localRelPath), DIRECTORY_SEPARATOR);
+        $this->local['root'] = FCPATH . $localRelPath . DIRECTORY_SEPARATOR;
+        $this->local['url']  = str_replace(DIRECTORY_SEPARATOR, '/', $localRelPath);
+
         // AWS S3
         $this->s3['key']            = (string) (env('S3_KEY') ?? env('AWS_ACCESS_KEY_ID') ?? $this->s3['key']);
         $this->s3['secret']         = (string) (env('S3_SECRET') ?? env('AWS_SECRET_ACCESS_KEY') ?? $this->s3['secret']);

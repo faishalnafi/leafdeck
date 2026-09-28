@@ -61,17 +61,19 @@ class DeckService
     {
         $nanoId = $this->generateNanoId();
 
-        $isZip = false;
+        // Deteksi format berkas yang diunggah
+        $ext = 'html';
         if ($file instanceof \CodeIgniter\HTTP\Files\UploadedFile) {
             $ext = strtolower($file->getClientExtension());
-            if ($ext === 'zip') {
-                $isZip = true;
+        } elseif (is_string($file)) {
+            if (file_exists($file)) {
+                $ext = strtolower(pathinfo($file, PATHINFO_EXTENSION));
+            } else {
+                $ext = 'html';
             }
-        } elseif (is_string($file) && (str_ends_with(strtolower($file), '.zip') || (file_exists($file) && str_ends_with(strtolower(pathinfo($file, PATHINFO_EXTENSION)), 'zip')))) {
-            $isZip = true;
         }
 
-        if ($isZip) {
+        if ($ext === 'zip') {
             $zipResult = $this->fileService->saveZipPackage($file, $nanoId);
             $filePath = $zipResult['file_path'];
 
@@ -83,9 +85,21 @@ class DeckService
             if (empty($data['thumbnail']) && !empty($zipResult['thumbnail'])) {
                 $data['thumbnail'] = $zipResult['thumbnail'];
             }
+        } elseif ($ext === 'pdf') {
+            $filePath = $this->fileService->savePdf($file, $nanoId);
+        } elseif ($ext === 'pptx') {
+            $filePath = $this->fileService->savePptx($file, $nanoId);
         } else {
             // Simpan file HTML via FileService
             $filePath = $this->fileService->saveHtml($file, $nanoId);
+        }
+
+        if (empty($data['title'])) {
+            if ($file instanceof \CodeIgniter\HTTP\Files\UploadedFile) {
+                $data['title'] = pathinfo($file->getClientName(), PATHINFO_FILENAME);
+            } elseif (is_string($file) && file_exists($file)) {
+                $data['title'] = pathinfo($file, PATHINFO_FILENAME);
+            }
         }
 
         if (empty($data['title'])) {

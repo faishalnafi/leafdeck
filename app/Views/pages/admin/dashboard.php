@@ -721,6 +721,60 @@
                     </div>
                 </div>
 
+                <!-- Info Path Sentralisasi Penyimpanan Lokal -->
+                <div class="bg-slate-50 border border-slate-200 rounded-2xl p-5 mb-6 text-xs">
+                    <div class="flex items-start gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                            <span class="material-symbols-rounded text-[22px]">folder_special</span>
+                        </div>
+                        <div class="flex-1 space-y-2">
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                <div>
+                                    <h4 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+                                        <span>Penyimpanan Lokal Tersentralisasi (Local Storage)</span>
+                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                            Tersentralisasi
+                                        </span>
+                                    </h4>
+                                    <p class="text-[11px] text-slate-500 mt-0.5">
+                                        Seluruh berkas yang diunggah saat mode Local Disk aktif disimpan secara terpusat pada direktori khusus server di bawah ini:
+                                    </p>
+                                </div>
+                                <span class="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200/80 shrink-0">
+                                    <span class="material-symbols-rounded text-[14px]">security</span>
+                                    Proteksi .htaccess Aktif
+                                </span>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                                <div class="bg-white p-3 rounded-xl border border-slate-200/80">
+                                    <span class="text-[10px] text-slate-400 font-semibold block uppercase">Path Relatif Publik</span>
+                                    <code class="font-mono text-emerald-700 font-bold text-xs">public/uploads/decks/</code>
+                                    <p class="text-[10px] text-slate-400 mt-1">URL Web: <code class="bg-slate-100 px-1 py-0.5 rounded">/uploads/decks/...</code></p>
+                                </div>
+                                <div class="bg-white p-3 rounded-xl border border-slate-200/80">
+                                    <span class="text-[10px] text-slate-400 font-semibold block uppercase">Path Mutlak Server (FCPATH)</span>
+                                    <code class="font-mono text-slate-800 text-[11px] break-all select-all font-semibold"><?= FCPATH . 'uploads' . DIRECTORY_SEPARATOR . 'decks' . DIRECTORY_SEPARATOR ?></code>
+                                    <p class="text-[10px] text-slate-400 mt-1">Dapat dikonfigurasi via env: <code class="bg-slate-100 px-1 py-0.5 rounded">LOCAL_STORAGE_PATH</code></p>
+                                </div>
+                            </div>
+
+                            <div class="bg-emerald-50/70 border border-emerald-200/60 rounded-xl p-3 text-[11px] text-slate-600 space-y-1">
+                                <p class="font-bold text-emerald-900 flex items-center gap-1.5">
+                                    <span class="material-symbols-rounded text-[16px] text-emerald-600">lock</span>
+                                    Kunci Format &amp; Aturan Isolasi Folder:
+                                </p>
+                                <ul class="list-disc list-inside space-y-0.5 text-slate-600 pl-1">
+                                    <li><strong>4 Format Terkunci:</strong> HTML (.html/.htm), Flipbook ZIP (.zip), Dokumen PDF (.pdf), dan PowerPoint (.pptx). Format lain (.exe, .php, dll) ditolak keras.</li>
+                                    <li><strong>Batas Ukuran Maksimal:</strong> Diperluas hingga <strong>250 MB</strong> per unggahan berkas.</li>
+                                    <li><strong>Isolasi Paket ZIP:</strong> Diekstrak di subfolder khusus NanoID (<code class="bg-emerald-100/60 px-1 py-0.5 rounded">uploads/decks/{nanoId}/</code>) tanpa mencemari aset lain.</li>
+                                    <li><strong>Anti Cyber Attack:</strong> Dilengkapi proteksi modul server anti-eksekusi skrip (<code class="bg-emerald-100/60 px-1 py-0.5 rounded">php_flag engine off</code>), inspeksi Magic Bytes, anti Zip-Slip, dan deteksi webshell.</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Formulir Parameter Penyimpanan (Driver Specific Sections) -->
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 

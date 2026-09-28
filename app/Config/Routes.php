@@ -66,7 +66,8 @@ $routes->post('admin/settings/storage',        'Web\AdminController::saveStorage
 $routes->post('admin/settings/test-storage',   'Web\AdminController::testStorageConnection');
 
 // Raw Deck HTML renderer for iframe
-$routes->get('raw-deck/(:segment)', 'Web\ViewerController::rawHtml/$1');
+$routes->get('raw-deck/(:segment)',      'Web\ViewerController::rawHtml/$1');
+$routes->get('download-deck/(:segment)', 'Web\ViewerController::download/$1');
 
 
 // ─── Blueprint Routes (disabled — aktifkan saat Phase 2 & 3) ─────────────────

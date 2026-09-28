@@ -56,6 +56,18 @@
             <!-- Deck Grid -->
             <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5" id="deck-grid">
                 <?php foreach ($decks as $deck): ?>
+                    <?php
+                    $deckExt = strtolower(pathinfo($deck->file_path, PATHINFO_EXTENSION));
+                    if (str_contains($deck->file_path, "uploads/decks/{$deck->nano_id}/")) {
+                        $deckExt = 'zip';
+                    }
+                    $badgeFormat = match ($deckExt) {
+                        'pdf'  => ['label' => 'PDF', 'class' => 'bg-red-600/90 text-white', 'icon' => 'picture_as_pdf', 'color' => 'text-red-500'],
+                        'pptx' => ['label' => 'PPTX', 'class' => 'bg-amber-600/90 text-white', 'icon' => 'co_present', 'color' => 'text-amber-500'],
+                        'zip'  => ['label' => 'ZIP', 'class' => 'bg-blue-600/90 text-white', 'icon' => 'folder_zip', 'color' => 'text-blue-500'],
+                        default=> ['label' => 'HTML', 'class' => 'bg-emerald-600/90 text-white', 'icon' => 'slideshow', 'color' => 'text-emerald-500'],
+                    };
+                    ?>
                     <div id="deck-card-<?= esc($deck->nano_id) ?>"
                          class="bg-white rounded-xl border border-slate-200 hover:shadow-md transition-all duration-200 group flex flex-col relative">
 
@@ -64,10 +76,15 @@
                             <?php if (!empty($deck->thumbnail)): ?>
                                 <img src="<?= esc($deck->thumbnail) ?>" alt="<?= esc($deck->title) ?>" class="w-full h-full object-cover">
                             <?php else: ?>
-                                <div class="w-full h-full flex flex-col items-center justify-center text-slate-400 group-hover:text-emerald-600 transition-colors">
-                                    <span class="material-symbols-rounded text-[48px]">slideshow</span>
+                                <div class="w-full h-full flex flex-col items-center justify-center text-slate-400 group-hover:<?= $badgeFormat['color'] ?> transition-colors">
+                                    <span class="material-symbols-rounded text-[48px]"><?= $badgeFormat['icon'] ?></span>
                                 </div>
                             <?php endif; ?>
+
+                            <!-- Format badge -->
+                            <span class="absolute top-2 right-2 <?= $badgeFormat['class'] ?> text-[10px] font-bold px-2 py-0.5 rounded-md shadow-xs">
+                                <?= $badgeFormat['label'] ?>
+                            </span>
 
                             <!-- View count badge -->
                             <span class="absolute top-2 left-2 bg-black/60 backdrop-blur-xs text-white text-[10px] font-medium px-2 py-0.5 rounded-full flex items-center gap-1">
@@ -170,7 +187,7 @@
         <div class="flex items-center justify-between pb-3 border-b border-slate-100">
             <h3 class="font-bold text-slate-800 text-base flex items-center gap-2">
                 <span class="material-symbols-rounded text-emerald-600">upload_file</span>
-                Unggah File HTML Materi
+                Unggah Materi Presentasi
             </h3>
             <button onclick="closeUploadModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
                 <span class="material-symbols-rounded text-[20px]">close</span>
@@ -181,17 +198,17 @@
             <!-- Drag and Drop Dropzone -->
             <div id="dropzone"
                  class="border-2 border-dashed border-slate-300 hover:border-emerald-500 rounded-2xl p-6 text-center cursor-pointer transition-all duration-200 bg-slate-50/50 hover:bg-emerald-50/30">
-                <input type="file" id="deck-file-input" accept=".html,.htm,.zip" class="hidden">
+                <input type="file" id="deck-file-input" accept=".html,.htm,.zip,.pdf,.pptx" class="hidden">
 
                 <!-- Default Unselected State -->
                 <div id="dropzone-empty" class="flex flex-col items-center">
                     <div class="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mb-3">
                         <span class="material-symbols-rounded text-[32px]">cloud_upload</span>
                     </div>
-                    <p class="text-sm font-bold text-slate-700">Tarik &amp; lepas file HTML atau ZIP ke sini</p>
+                    <p class="text-sm font-bold text-slate-700">Tarik &amp; lepas file HTML, ZIP, PDF, atau PPTX ke sini</p>
                     <p class="text-xs text-slate-500 mt-1">atau <span class="text-emerald-600 font-semibold underline underline-offset-2">telusuri dari komputer</span></p>
-                    <span class="inline-block mt-3 text-[11px] text-slate-400 bg-white border border-slate-200 px-2.5 py-1 rounded-full">
-                        Mendukung .html, .htm murni, atau paket .zip flipbook/e-book (maks. 100MB)
+                    <span class="inline-block mt-3 text-[11px] text-slate-500 bg-white border border-slate-200 px-3 py-1 rounded-full">
+                        Mendukung .html, paket .zip flipbook, dokumen .pdf, dan presentasi .pptx (Maks. 250 MB)
                     </span>
                 </div>
 
@@ -212,12 +229,12 @@
                 </div>
             </div>
 
-            <!-- Tip untuk Pengguna Flip PDF / FlipBuilder -->
+            <!-- Tip Format & Keamanan Berkas -->
             <div class="bg-emerald-50/70 border border-emerald-200/80 rounded-xl p-3 flex items-start gap-2.5 text-left text-xs">
-                <span class="material-symbols-rounded text-emerald-600 text-[18px] shrink-0 mt-0.5">tips_and_updates</span>
+                <span class="material-symbols-rounded text-emerald-600 text-[18px] shrink-0 mt-0.5">verified_user</span>
                 <div class="text-slate-600 leading-relaxed text-[11px]">
-                    <span class="font-bold text-emerald-800">Tips Pengguna Flip PDF / FlipBuilder:</span><br>
-                    Saat publikasi materi, pilih format <strong>*.html</strong> dan centang kotak <strong>"Compress to ZIP after publishing"</strong>. Unggah berkas <strong>.zip</strong> tersebut agar siswa dapat membuka e-book di HP dan laptop tanpa install aplikasi.
+                    <span class="font-bold text-emerald-800">Format Resmi &amp; Keamanan Berlapis:</span><br>
+                    Unggah materi dalam format <strong>HTML5 (*.html)</strong>, paket <strong>Flipbook ZIP (*.zip)</strong>, <strong>Dokumen PDF (*.pdf)</strong>, atau <strong>PowerPoint (*.pptx)</strong> hingga <strong>250 MB</strong>. Seluruh berkas melalui verifikasi siber ketat (anti-injection &amp; anti-webshell).
                 </div>
             </div>
 
@@ -335,8 +352,15 @@
         if (!file) return;
 
         const ext = file.name.split('.').pop().toLowerCase();
-        if (ext !== 'html' && ext !== 'htm' && ext !== 'zip') {
-            showToast('Hanya file .html, .htm, atau .zip yang didukung', 'error');
+        const allowedExts = ['html', 'htm', 'zip', 'pdf', 'pptx'];
+        if (!allowedExts.includes(ext)) {
+            showToast('Hanya berkas .html, .zip, .pdf, atau .pptx yang didukung', 'error');
+            return;
+        }
+
+        const maxBytes = 250 * 1024 * 1024;
+        if (file.size > maxBytes) {
+            showToast('Ukuran berkas melebihi batas maksimal 250 MB', 'error');
             return;
         }
 
@@ -348,7 +372,19 @@
 
         const iconEl = document.getElementById('selected-fileicon');
         if (iconEl) {
-            iconEl.textContent = (ext === 'zip') ? 'folder_zip' : 'html';
+            if (ext === 'pdf') {
+                iconEl.textContent = 'picture_as_pdf';
+                iconEl.parentElement.className = 'w-10 h-10 bg-red-100 text-red-700 rounded-lg flex items-center justify-center shrink-0';
+            } else if (ext === 'pptx') {
+                iconEl.textContent = 'co_present';
+                iconEl.parentElement.className = 'w-10 h-10 bg-amber-100 text-amber-700 rounded-lg flex items-center justify-center shrink-0';
+            } else if (ext === 'zip') {
+                iconEl.textContent = 'folder_zip';
+                iconEl.parentElement.className = 'w-10 h-10 bg-blue-100 text-blue-700 rounded-lg flex items-center justify-center shrink-0';
+            } else {
+                iconEl.textContent = 'html';
+                iconEl.parentElement.className = 'w-10 h-10 bg-emerald-100 text-emerald-700 rounded-lg flex items-center justify-center shrink-0';
+            }
         }
 
         emptyState.classList.add('hidden');

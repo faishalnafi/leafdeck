@@ -50,12 +50,21 @@ class DeckController extends BaseController
 
         $file = $this->request->getFile('file');
         if (!$file || !$file->isValid()) {
-            return ApiResponse::error('Berkas presentasi HTML atau paket ZIP wajib diunggah', 400);
+            $msg = $file ? $file->getErrorString() : 'Berkas materi presentasi wajib diunggah';
+            return ApiResponse::error($msg, 400);
         }
 
+        // Batasan ukuran berkas: 250 MB (262.144.000 bytes)
+        $maxSizeBytes = 250 * 1024 * 1024;
+        if ($file->getSize() > $maxSizeBytes) {
+            return ApiResponse::error('Ukuran berkas melebihi batas maksimal 250 MB.', 400);
+        }
+
+        // Whitelist ekstensi terkunci pada 4 format: HTML, ZIP, PDF, PPTX
         $ext = strtolower($file->getClientExtension());
-        if (!in_array($ext, ['html', 'htm', 'zip'], true)) {
-            return ApiResponse::error('Format berkas tidak didukung. Unggah berkas .html atau paket .zip flipbook.', 400);
+        $allowedExtensions = ['html', 'htm', 'zip', 'pdf', 'pptx'];
+        if (!in_array($ext, $allowedExtensions, true)) {
+            return ApiResponse::error('Format berkas tidak didukung. Unggah berkas HTML (.html/.htm), paket ZIP (.zip), dokumen PDF (.pdf), atau PowerPoint (.pptx).', 400);
         }
 
         // Jika judul dikosongkan, gunakan nama file tanpa ekstensi

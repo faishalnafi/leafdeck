@@ -1,0 +1,32 @@
+# LeafDeck Security Configuration for Uploads Directory
+# Prevents execution of scripts, webshells, or server-side executables
+
+# Disable script execution engines
+<IfModule mod_php.c>
+    php_flag engine off
+</IfModule>
+<IfModule mod_php7.c>
+    php_flag engine off
+</IfModule>
+<IfModule mod_php8.c>
+    php_flag engine off
+</IfModule>
+
+# Remove script handlers
+RemoveHandler .php .phtml .php3 .php4 .php5 .phps .phar .cgi .pl .py
+RemoveType .php .phtml .php3 .php4 .php5 .phps .phar .cgi .pl .py
+
+# Deny access to dangerous files
+<FilesMatch "\.(php|phtml|php3|php4|php5|phps|phar|pl|py|cgi|sh|bash|exe|bat|cmd|vbs|ps1|htaccess|htpasswd|env|git)$">
+    Order Deny,Allow
+    Deny from all
+</FilesMatch>
+
+# Only allow safe presentation assets
+<FilesMatch "\.(html|htm|zip|pdf|pptx|png|jpg|jpeg|gif|webp|svg|ico|css|js|mjs|woff|woff2|ttf|eot|mp3|mp4|ogg|wav|json|xml|txt)$">
+    Order Allow,Deny
+    Allow from all
+</FilesMatch>
+
+# Prevent directory indexing and script execution
+Options -Indexes -ExecCGI
