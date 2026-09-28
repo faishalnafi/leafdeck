@@ -14,7 +14,8 @@ class HomeController extends BaseController
         }
 
         return view('pages/home', [
-            'title' => 'Masuk — LeafDeck',
+            'title'              => 'Masuk — LeafDeck',
+            'googleLoginEnabled' => filter_var(env('GOOGLE_LOGIN_ENABLED', false), FILTER_VALIDATE_BOOLEAN),
         ]);
     }
 }

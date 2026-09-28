@@ -507,6 +507,27 @@
                                     <span class="font-bold">Info Integrasi:</span> LeafDeck terhubung ke akun Google melalui SSO Kredensia (<code class="bg-blue-100/80 px-1 py-0.5 rounded">/auth/google</code>). Pengguna masuk dengan akun Google sekolah dan otomatis terverifikasi tanpa login berulang.
                                 </div>
 
+                                <!-- Toggle Status Login Google OAuth -->
+                                <div class="bg-slate-50 border border-slate-200 rounded-xl p-3.5 flex items-center justify-between">
+                                    <div class="space-y-0.5 pr-2">
+                                        <label for="toggle_google_login" class="text-xs font-bold text-slate-800 flex items-center gap-2 cursor-pointer">
+                                            <span>Tombol Login Google di Halaman Masuk</span>
+                                            <span id="google_status_badge" class="text-[10px] px-2 py-0.5 rounded-full font-semibold <?= !empty($ssoConfig['google_login_enabled']) ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-slate-200 text-slate-600 border border-slate-300' ?>">
+                                                <?= !empty($ssoConfig['google_login_enabled']) ? 'Aktif' : 'Nonaktif (Disabled)' ?>
+                                            </span>
+                                        </label>
+                                        <p class="text-[11px] text-slate-500">
+                                            Jika dinonaktifkan, tombol Google di halaman login tetap tampil namun dalam status nonaktif (disabled) dan tidak bisa diklik.
+                                        </p>
+                                    </div>
+                                    <label class="relative inline-flex items-center cursor-pointer shrink-0">
+                                        <input type="checkbox" name="google_login_enabled" id="toggle_google_login" value="1"
+                                               <?= !empty($ssoConfig['google_login_enabled']) ? 'checked' : '' ?>
+                                               class="sr-only peer" onchange="updateGoogleToggleStatus(this)">
+                                        <div class="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                                    </label>
+                                </div>
+
                                 <!-- Google Client ID -->
                                 <div>
                                     <label class="block font-bold text-slate-700 mb-1">
@@ -735,6 +756,7 @@ async function saveSsoSettings(e) {
         sso_callback_url: document.getElementById('input_sso_callback_url')?.value,
         google_client_id: document.getElementById('input_google_client_id')?.value,
         google_client_secret: document.getElementById('input_google_client_secret')?.value,
+        google_login_enabled: document.getElementById('toggle_google_login')?.checked ? 'true' : 'false',
     };
 
     try {
@@ -837,6 +859,21 @@ async function testSsoConnection() {
     } finally {
         btn.disabled = false;
         btn.innerHTML = originalText;
+    }
+}
+
+/**
+ * Update UI status badge toggle Google Login secara real-time
+ */
+function updateGoogleToggleStatus(checkbox) {
+    const badge = document.getElementById('google_status_badge');
+    if (!badge) return;
+    if (checkbox.checked) {
+        badge.className = 'text-[10px] px-2 py-0.5 rounded-full font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200';
+        badge.textContent = 'Aktif';
+    } else {
+        badge.className = 'text-[10px] px-2 py-0.5 rounded-full font-semibold bg-slate-200 text-slate-600 border border-slate-300';
+        badge.textContent = 'Nonaktif (Disabled)';
     }
 }
 </script>

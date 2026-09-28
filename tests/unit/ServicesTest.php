@@ -159,6 +159,18 @@ final class ServicesTest extends CIUnitTestCase
         $this->assertSame('pengguna', $ssoService->mapRole(['Guru', 'Wali Kelas']));
         $this->assertSame('pengguna', $ssoService->mapRole(['Siswa']));
 
+        // Test Google Login Enabled toggle config
+        putenv('GOOGLE_LOGIN_ENABLED=false');
+        $_ENV['GOOGLE_LOGIN_ENABLED'] = 'false';
+        $this->assertFalse(filter_var(env('GOOGLE_LOGIN_ENABLED', false), FILTER_VALIDATE_BOOLEAN));
+
+        putenv('GOOGLE_LOGIN_ENABLED=true');
+        $_ENV['GOOGLE_LOGIN_ENABLED'] = 'true';
+        $this->assertTrue(filter_var(env('GOOGLE_LOGIN_ENABLED', false), FILTER_VALIDATE_BOOLEAN));
+
+        putenv('GOOGLE_LOGIN_ENABLED=false');
+        $_ENV['GOOGLE_LOGIN_ENABLED'] = 'false';
+
         // Clean up test user
         $userModel = new UserModel();
         $userModel->delete($user->id);

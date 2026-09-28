@@ -86,6 +86,7 @@ class AdminController extends BaseController
             'sso_callback_url'     => env('SSO_CALLBACK_URL') ?? site_url('sso/callback'),
             'google_client_id'     => env('GOOGLE_CLIENT_ID') ?? '',
             'google_client_secret' => env('GOOGLE_CLIENT_SECRET') ?? '',
+            'google_login_enabled' => filter_var(env('GOOGLE_LOGIN_ENABLED', false), FILTER_VALIDATE_BOOLEAN),
         ];
 
         return view('pages/admin/dashboard', [
@@ -129,6 +130,7 @@ class AdminController extends BaseController
             'SSO_CALLBACK_URL'     => trim($input['sso_callback_url'] ?? ''),
             'GOOGLE_CLIENT_ID'     => trim($input['google_client_id'] ?? ''),
             'GOOGLE_CLIENT_SECRET' => trim($input['google_client_secret'] ?? ''),
+            'GOOGLE_LOGIN_ENABLED' => (!empty($input['google_login_enabled']) && in_array($input['google_login_enabled'], ['1', 'true', true], true)) ? 'true' : 'false',
         ];
 
         $success = $this->updateEnvFile($fields);

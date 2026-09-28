@@ -34,6 +34,11 @@ class SsoController extends BaseController
      */
     public function googleLogin()
     {
+        $enabled = filter_var(env('GOOGLE_LOGIN_ENABLED', false), FILTER_VALIDATE_BOOLEAN);
+        if (!$enabled) {
+            return redirect()->to('/?error=' . urlencode('Metode login dengan Akun Google saat ini dinonaktifkan oleh administrator.'));
+        }
+
         $bypass = $this->request->getGet('bypass');
         $ssoBaseUrl  = env('SSO_BASE_URL');
         $ssoClientId = env('SSO_CLIENT_ID');
