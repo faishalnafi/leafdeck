@@ -12,15 +12,16 @@
 
 ### ✨ Fitur Utama
 
-- 📤 **Upload & Manajemen Materi** — Guru upload slide presentasi HTML interaktif
-- 📚 **E-Book Viewer** — Tampilan dokumen dan slide yang interaktif, fullscreen, dan responsif
-- 🔐 **SSO Terintegrasi & Google OAuth** — Autentikasi terpusat (Kredensia SSO Sekolah & Google Sign-In)
+- 📤 **Upload HTML & ZIP FlipBook Bundle** — Mendukung berkas presentasi `.html` mandiri maupun paket `.zip` e-book interaktif multi-aset (FlipBuilder, Flip PDF Professional, Canva, iSpring).
+- 🖼️ **Auto-Detection Sampul & Judul** — Otomatis membaca judul materi dan mendeteksi sampul/thumbnail buku dari berkas yang diunggah.
+- 📚 **E-Book Viewer Multi-Perangkat** — Tampilan interaktif yang responsif dan optimal di layar **Desktop, Tablet, dan Smartphone** (layar sentuh / swipe page).
+- 🔐 **SSO Terintegrasi & Google OAuth** — Autentikasi terpusat (Kredensia SSO Sekolah & Google Sign-In).
 - 👑 **Role-Based Access Control (RBAC)**:
   - **Superadmin**: Kontrol penuh sistem, manajemen konfigurasi SSO Sekolah & Google OAuth, audit log, manajemen admin & user.
   - **Admin**: Moderasi materi pembelajaran, validasi konten, dan manajemen akun pengguna.
   - **Teacher / User**: Unggah, edit, hapus, dan bagikan materi ajar interaktif.
 - 🧙‍♂️ **Web UI Installer (`/install`)** — Setup 1-klik yang memeriksa prasyarat server, konfigurasi database MariaDB/MySQL, migrasi & seeder otomatis, dan konfigurasi awal instansi.
-- 📱 **Mobile & Desktop Optimized** — Tampilan modern menggunakan Tailwind CSS.
+- ⚡ **Spark CLI Import** — Perintah `php spark deck:import <file>` untuk import cepat materi secara langsung dari terminal server.
 
 ---
 
@@ -132,6 +133,30 @@ Setelah menjalankan migrasi atau Web Installer, akun bawaan yang tersedia:
 | `/admin` | Panel Moderasi & Manajemen User | Admin & Superadmin |
 | `/admin` (Tab SSO) | Konfigurasi SSO Sekolah & Google OAuth | Khusus Superadmin |
 | `/install` | Web UI Pemasang Cepat (Easy Installer) | Administrator Setup |
+
+---
+
+## 💡 Format Berkas & Panduan Ekspor Guru (FlipBuilder / Flip PDF)
+
+LeafDeck mendukung materi pembelajaran interaktif modern yang dibuat menggunakan software pembuat e-book (FlipBuilder, Flip PDF Professional, iSpring, Canva HTML):
+
+### 1. Format Berkas yang Didukung
+- **Berkas ZIP (`.zip`)**: Arsip berisi web flipbook interaktif lengkap (HTML, CSS, JS, dan gambar slide). Sistem otomatis mengekstrak seluruh slide dan aset.
+- **Berkas HTML (`.html`, `.htm`)**: Slide presentasi interaktif satu berkas mandiri.
+
+### 2. Panduan Pengaturan Ekspor di FlipBuilder / Flip PDF Professional
+Saat guru menekan menu **Publish / Publikasikan**:
+1. Pilih **`Publish as: (*.html)`** (Bukan `*.exe`).
+2. Pada bagian *Loading Sequence*, pilih **`HTML5 Only`** (atau `HTML5 - Flash`).
+3. Beri centang pada kotak: **`[✔] Compress to ZIP after publishing`**.
+4. Klik **Convert**.
+5. Unggah berkas `.zip` yang dihasilkan ke LeafDeck!
+
+### 📱 Kompatibilitas Perangkat
+Materi e-book interaktif di LeafDeck otomatis responsif dan adaptif terhadap semua form factor:
+- 💻 **Desktop / Laptop**: Tampilan buku side-by-side dua halaman dengan simulasi 3D flip realistis, zoom, dan toolbar lengkap.
+- 📱 **Smartphone (Mobile)**: Tampilan layar vertikal satu halaman yang dioptimalkan untuk navigasi geser jari (*touch swipe gesture*).
+- 📟 **Tablet / iPad**: Mode orientasi ganda (portrait untuk 1 halaman, landscape untuk 2 halaman bersebelahan).
 
 ---
 
