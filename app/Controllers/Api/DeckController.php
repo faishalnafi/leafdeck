@@ -50,7 +50,12 @@ class DeckController extends BaseController
 
         $file = $this->request->getFile('file');
         if (!$file || !$file->isValid()) {
-            return ApiResponse::error('File presentasi HTML wajib diunggah', 400);
+            return ApiResponse::error('Berkas presentasi HTML atau paket ZIP wajib diunggah', 400);
+        }
+
+        $ext = strtolower($file->getClientExtension());
+        if (!in_array($ext, ['html', 'htm', 'zip'], true)) {
+            return ApiResponse::error('Format berkas tidak didukung. Unggah berkas .html atau paket .zip flipbook.', 400);
         }
 
         // Jika judul dikosongkan, gunakan nama file tanpa ekstensi

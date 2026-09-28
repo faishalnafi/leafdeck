@@ -44,10 +44,16 @@ class ViewerController extends BaseController
             $this->deckService->incrementViews((string) $nanoId);
         }
 
+        // Tentukan URL muatan: jika paket bundle (uploads/decks/{nanoId}/...), arahkan ke path publik
+        $rawUrl = site_url("raw-deck/{$deck->nano_id}");
+        if (str_contains($deck->file_path, "uploads/decks/{$deck->nano_id}/")) {
+            $rawUrl = base_url($deck->file_path);
+        }
+
         return view('pages/viewer', [
             'title'   => $deck->title . ' — LeafDeck Viewer',
             'deck'    => $deck,
-            'rawUrl'  => site_url("raw-deck/{$deck->nano_id}"),
+            'rawUrl'  => $rawUrl,
             'isOwner' => $isOwner,
         ]);
     }
@@ -70,6 +76,10 @@ class ViewerController extends BaseController
 
         if ((int) $deck->is_public !== 1 && !$isOwner && !$isAdmin) {
             return $this->response->setStatusCode(403)->setBody('Akses ditolak. Materi presentasi ini disetel sebagai privat.');
+        }
+
+        if (str_contains($deck->file_path, "uploads/decks/{$deck->nano_id}/")) {
+            return redirect()->to(base_url($deck->file_path));
         }
 
         $html = $this->deckService->getHtmlContent($deck);

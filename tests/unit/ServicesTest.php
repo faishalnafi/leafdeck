@@ -163,4 +163,43 @@ final class ServicesTest extends CIUnitTestCase
         $userModel = new UserModel();
         $userModel->delete($user->id);
     }
+
+    public function testZipPackageLifecycle(): void
+    {
+        $userModel = new UserModel();
+        $admin = $userModel->where('role', 'superadmin')->first();
+
+        // Buat file ZIP sementara
+        $tempZip = WRITEPATH . 'test_flipbook_' . bin2hex(random_bytes(4)) . '.zip';
+        $zip = new \ZipArchive();
+        $zip->open($tempZip, \ZipArchive::CREATE | \ZipArchive::OVERWRITE);
+        $zip->addFromString('index.html', '<!DOCTYPE html><html><head><title>E-Book Biologi Sel</title></head><body><h1>Halaman Utama</h1></body></html>');
+        $zip->addFromString('files/thumb/1.jpg', 'fake-image-bytes');
+        $zip->addFromString('mobile/style.css', 'body { margin: 0; }');
+        $zip->close();
+
+        $deckService = new DeckService();
+        $deck = $deckService->create((int) $admin->id, [
+            'is_public' => 1,
+        ], $tempZip);
+
+        $this->assertNotNull($deck);
+        $this->assertSame('E-Book Biologi Sel', $deck->title);
+        $this->assertStringContainsString('uploads/decks/' . $deck->nano_id . '/index.html', $deck->file_path);
+        $this->assertNotNull($deck->thumbnail);
+        $this->assertStringContainsString('1.jpg', $deck->thumbnail);
+
+        // Pastikan file fisik ter-ekstrak di disk
+        $extractedIndex = FCPATH . str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $deck->file_path);
+        $this->assertFileExists($extractedIndex);
+
+        // Hapus permanen dan pastikan direktori bersih
+        $deckService->delete($deck->nano_id, (int) $admin->id);
+        $deckService->forceDelete($deck->nano_id, (int) $admin->id);
+        $this->assertFileDoesNotExist($extractedIndex);
+
+        if (file_exists($tempZip)) {
+            unlink($tempZip);
+        }
+    }
 }

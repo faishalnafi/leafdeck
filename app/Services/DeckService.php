@@ -59,14 +59,38 @@ class DeckService
      */
     public function create(int $userId, array $data, $file): object
     {
+        $nanoId = $this->generateNanoId();
+
+        $isZip = false;
+        if ($file instanceof \CodeIgniter\HTTP\Files\UploadedFile) {
+            $ext = strtolower($file->getClientExtension());
+            if ($ext === 'zip') {
+                $isZip = true;
+            }
+        } elseif (is_string($file) && (str_ends_with(strtolower($file), '.zip') || (file_exists($file) && str_ends_with(strtolower(pathinfo($file, PATHINFO_EXTENSION)), 'zip')))) {
+            $isZip = true;
+        }
+
+        if ($isZip) {
+            $zipResult = $this->fileService->saveZipPackage($file, $nanoId);
+            $filePath = $zipResult['file_path'];
+
+            // Gunakan judul dari dokumen jika input judul kosong
+            if (empty($data['title']) && !empty($zipResult['title'])) {
+                $data['title'] = $zipResult['title'];
+            }
+            // Gunakan thumbnail sampul otomatis dari isi buku
+            if (empty($data['thumbnail']) && !empty($zipResult['thumbnail'])) {
+                $data['thumbnail'] = $zipResult['thumbnail'];
+            }
+        } else {
+            // Simpan file HTML via FileService
+            $filePath = $this->fileService->saveHtml($file, $nanoId);
+        }
+
         if (empty($data['title'])) {
             throw new RuntimeException('Judul presentasi wajib diisi');
         }
-
-        $nanoId = $this->generateNanoId();
-
-        // Simpan file HTML via FileService
-        $filePath = $this->fileService->saveHtml($file, $nanoId);
 
         $payload = [
             'nano_id'     => $nanoId,

@@ -181,17 +181,17 @@
             <!-- Drag and Drop Dropzone -->
             <div id="dropzone"
                  class="border-2 border-dashed border-slate-300 hover:border-emerald-500 rounded-2xl p-6 text-center cursor-pointer transition-all duration-200 bg-slate-50/50 hover:bg-emerald-50/30">
-                <input type="file" id="deck-file-input" accept=".html,.htm" class="hidden">
+                <input type="file" id="deck-file-input" accept=".html,.htm,.zip" class="hidden">
 
                 <!-- Default Unselected State -->
                 <div id="dropzone-empty" class="flex flex-col items-center">
                     <div class="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mb-3">
                         <span class="material-symbols-rounded text-[32px]">cloud_upload</span>
                     </div>
-                    <p class="text-sm font-bold text-slate-700">Tarik &amp; lepas file HTML ke sini</p>
+                    <p class="text-sm font-bold text-slate-700">Tarik &amp; lepas file HTML atau ZIP ke sini</p>
                     <p class="text-xs text-slate-500 mt-1">atau <span class="text-emerald-600 font-semibold underline underline-offset-2">telusuri dari komputer</span></p>
                     <span class="inline-block mt-3 text-[11px] text-slate-400 bg-white border border-slate-200 px-2.5 py-1 rounded-full">
-                        Mendukung .html dan .htm murni (maks. 10MB)
+                        Mendukung .html, .htm murni, atau paket .zip flipbook/e-book (maks. 100MB)
                     </span>
                 </div>
 
@@ -199,7 +199,7 @@
                 <div id="dropzone-selected" class="hidden flex items-center justify-between bg-white border border-emerald-200 p-3.5 rounded-xl shadow-xs">
                     <div class="flex items-center gap-3 text-left truncate">
                         <div class="w-10 h-10 bg-emerald-100 text-emerald-700 rounded-lg flex items-center justify-center shrink-0">
-                            <span class="material-symbols-rounded text-[22px]">html</span>
+                            <span id="selected-fileicon" class="material-symbols-rounded text-[22px]">html</span>
                         </div>
                         <div class="truncate">
                             <p id="selected-filename" class="text-xs font-bold text-slate-800 truncate"></p>
@@ -326,14 +326,21 @@
         if (!file) return;
 
         const ext = file.name.split('.').pop().toLowerCase();
-        if (ext !== 'html' && ext !== 'htm') {
-            showToast('Hanya file .html atau .htm yang didukung', 'error');
+        if (ext !== 'html' && ext !== 'htm' && ext !== 'zip') {
+            showToast('Hanya file .html, .htm, atau .zip yang didukung', 'error');
             return;
         }
 
         selectedFile = file;
         filenameEl.textContent = file.name;
-        filesizeEl.textContent = (file.size / 1024).toFixed(1) + ' KB';
+        filesizeEl.textContent = (file.size > 1024 * 1024)
+            ? (file.size / (1024 * 1024)).toFixed(1) + ' MB'
+            : (file.size / 1024).toFixed(1) + ' KB';
+
+        const iconEl = document.getElementById('selected-fileicon');
+        if (iconEl) {
+            iconEl.textContent = (ext === 'zip') ? 'folder_zip' : 'html';
+        }
 
         emptyState.classList.add('hidden');
         selectedState.classList.remove('hidden');
