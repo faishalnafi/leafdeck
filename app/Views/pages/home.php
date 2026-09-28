@@ -43,6 +43,7 @@
         </p>
     </div>
 
+    <?php if (ENVIRONMENT !== 'production'): ?>
     <!-- Quick Bypass Button for Local Development -->
     <div class="pt-4 border-t border-slate-100 text-xs">
         <div class="flex items-center justify-between mb-2">
@@ -69,6 +70,7 @@
             </a>
         </div>
     </div>
+    <?php endif; ?>
 </div>
 <?= $this->endSection() ?>
 

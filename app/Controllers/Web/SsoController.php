@@ -51,6 +51,10 @@ class SsoController extends BaseController
      */
     public function bypassLogin($roleParam = null)
     {
+        if (ENVIRONMENT === 'production') {
+            return redirect()->to('/')->with('error', 'Bypass login dinonaktifkan pada lingkungan produksi.');
+        }
+
         $role = $this->request->getGet('role') ?? $roleParam ?? 'superadmin';
 
         $userModel = new UserModel();
