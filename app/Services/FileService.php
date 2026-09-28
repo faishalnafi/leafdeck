@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use CodeIgniter\HTTP\Files\UploadedFile;
+use App\Services\Storage\StorageManager;
 use RuntimeException;
 
 class FileService
@@ -46,7 +47,17 @@ class FileService
             throw new RuntimeException('Tipe konten file tidak didukung');
         }
 
-        return 'uploads/decks/' . $fileName;
+        $relPath = 'uploads/decks/' . $fileName;
+
+        // Jika object storage aktif (s3, r2, gcs, custom), unggah ke remote storage
+        if (StorageManager::getDefaultDriver() !== 'local') {
+            $content = file_get_contents($destination);
+            if ($content !== false) {
+                StorageManager::disk()->put($relPath, $content, 'text/html; charset=UTF-8');
+            }
+        }
+
+        return $relPath;
     }
 
     /**
@@ -158,6 +169,11 @@ class FileService
             }
         }
 
+        // Jika object storage aktif (s3, r2, gcs, custom), unggah seluruh berkas bundle ke remote storage
+        if (StorageManager::getDefaultDriver() !== 'local') {
+            $this->syncDirectoryToStorage($targetDir, 'uploads/decks/' . $nanoId);
+        }
+
         return [
             'file_path' => $entryRelPath,
             'title'     => $detectedTitle,
@@ -171,11 +187,16 @@ class FileService
     public function readHtml(string $filePath): ?string
     {
         $fullPath = $this->getAbsolutePath($filePath);
-        if (!file_exists($fullPath)) {
-            return null;
+        if (file_exists($fullPath)) {
+            return file_get_contents($fullPath);
         }
 
-        return file_get_contents($fullPath);
+        // Ambil dari object storage jika driver aktif bukan local
+        if (StorageManager::getDefaultDriver() !== 'local') {
+            return StorageManager::disk()->get($filePath);
+        }
+
+        return null;
     }
 
     /**
@@ -184,6 +205,7 @@ class FileService
     public function delete(string $filePath): bool
     {
         $fullPath = $this->getAbsolutePath($filePath);
+        $deleted = false;
         if (file_exists($fullPath)) {
             if (is_file($fullPath)) {
                 $deleted = unlink($fullPath);
@@ -193,13 +215,87 @@ class FileService
                 if (dirname($dir) === $decksDir && is_dir($dir)) {
                     $this->deleteDirectoryRecursive($dir);
                 }
-                return $deleted;
             } elseif (is_dir($fullPath)) {
-                return $this->deleteDirectoryRecursive($fullPath);
+                $deleted = $this->deleteDirectoryRecursive($fullPath);
             }
         }
 
-        return false;
+        // Hapus juga dari object storage jika bukan driver local
+        if (StorageManager::getDefaultDriver() !== 'local') {
+            $storage = StorageManager::disk();
+            $storage->delete($filePath);
+            if (preg_match('#uploads/decks/([^/]+)/#', $filePath, $m)) {
+                $storage->deleteDirectory('uploads/decks/' . $m[1]);
+            }
+            return true;
+        }
+
+        return $deleted;
+    }
+
+    /**
+     * Mendapatkan URL publik berkas (baik lokal maupun CDN / Object Storage)
+     */
+    public function getUrl(string $filePath): string
+    {
+        return StorageManager::disk()->url($filePath);
+    }
+
+    /**
+     * Sinkronisasi seluruh isi direktori lokal ke object storage
+     */
+    protected function syncDirectoryToStorage(string $dir, string $storagePrefix): void
+    {
+        $storage = StorageManager::disk();
+        if (!is_dir($dir)) {
+            return;
+        }
+
+        $items = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($dir, \RecursiveDirectoryIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::SELF_FIRST
+        );
+
+        foreach ($items as $item) {
+            if ($item->isFile()) {
+                $subPath = substr($item->getPathname(), strlen($dir));
+                $subPath = str_replace('\\', '/', ltrim($subPath, '\\/'));
+                $targetKey = rtrim($storagePrefix, '/') . '/' . $subPath;
+                $content = file_get_contents($item->getPathname());
+                if ($content !== false) {
+                    $mime = $this->detectMimeType($item->getPathname());
+                    $storage->put($targetKey, $content, $mime);
+                }
+            }
+        }
+    }
+
+    /**
+     * Deteksi MIME Type berkas berdasarkan ekstensi
+     */
+    protected function detectMimeType(string $path): string
+    {
+        $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+        return match ($ext) {
+            'html', 'htm' => 'text/html; charset=UTF-8',
+            'css'         => 'text/css; charset=UTF-8',
+            'js', 'mjs'   => 'application/javascript; charset=UTF-8',
+            'json'        => 'application/json; charset=UTF-8',
+            'png'         => 'image/png',
+            'jpg', 'jpeg' => 'image/jpeg',
+            'gif'         => 'image/gif',
+            'webp'        => 'image/webp',
+            'svg'         => 'image/svg+xml',
+            'ico'         => 'image/x-icon',
+            'woff'        => 'font/woff',
+            'woff2'       => 'font/woff2',
+            'ttf'         => 'font/ttf',
+            'eot'         => 'application/vnd.ms-fontobject',
+            'mp3'         => 'audio/mpeg',
+            'mp4'         => 'video/mp4',
+            'pdf'         => 'application/pdf',
+            default       => 'application/octet-stream',
+        };
     }
 
     /**

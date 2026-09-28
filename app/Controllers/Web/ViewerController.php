@@ -44,10 +44,11 @@ class ViewerController extends BaseController
             $this->deckService->incrementViews((string) $nanoId);
         }
 
-        // Tentukan URL muatan: jika paket bundle (uploads/decks/{nanoId}/...), arahkan ke path publik
+        // Tentukan URL muatan: jika paket bundle (uploads/decks/{nanoId}/...), arahkan ke URL storage (lokal atau CDN)
+        $fileService = new \App\Services\FileService();
         $rawUrl = site_url("raw-deck/{$deck->nano_id}");
         if (str_contains($deck->file_path, "uploads/decks/{$deck->nano_id}/")) {
-            $rawUrl = base_url($deck->file_path);
+            $rawUrl = $fileService->getUrl($deck->file_path);
         }
 
         return view('pages/viewer', [
@@ -79,7 +80,8 @@ class ViewerController extends BaseController
         }
 
         if (str_contains($deck->file_path, "uploads/decks/{$deck->nano_id}/")) {
-            return redirect()->to(base_url($deck->file_path));
+            $fileService = new \App\Services\FileService();
+            return redirect()->to($fileService->getUrl($deck->file_path));
         }
 
         $html = $this->deckService->getHtmlContent($deck);

@@ -89,14 +89,52 @@ class AdminController extends BaseController
             'google_login_enabled' => filter_var(env('GOOGLE_LOGIN_ENABLED', false), FILTER_VALIDATE_BOOLEAN),
         ];
 
+        $storageConfig = [
+            'driver'                => env('STORAGE_DRIVER') ?: 'local',
+
+            // AWS S3
+            's3_key'                => env('S3_KEY') ?? env('AWS_ACCESS_KEY_ID') ?? '',
+            's3_secret'             => env('S3_SECRET') ?? env('AWS_SECRET_ACCESS_KEY') ?? '',
+            's3_region'             => env('S3_REGION') ?? env('AWS_DEFAULT_REGION') ?? 'ap-southeast-3',
+            's3_bucket'             => env('S3_BUCKET') ?? '',
+            's3_endpoint'           => env('S3_ENDPOINT') ?? '',
+            's3_public_url'         => env('S3_PUBLIC_URL') ?? '',
+            's3_use_path_style'     => filter_var(env('S3_USE_PATH_STYLE_ENDPOINT', false), FILTER_VALIDATE_BOOLEAN),
+
+            // Cloudflare R2
+            'r2_account_id'         => env('R2_ACCOUNT_ID') ?? '',
+            'r2_access_key_id'      => env('R2_ACCESS_KEY_ID') ?? '',
+            'r2_secret_access_key'  => env('R2_SECRET_ACCESS_KEY') ?? '',
+            'r2_bucket'             => env('R2_BUCKET') ?? '',
+            'r2_public_url'         => env('R2_PUBLIC_URL') ?? '',
+
+            // Google Cloud Storage
+            'gcs_project_id'        => env('GCS_PROJECT_ID') ?? '',
+            'gcs_access_key_id'     => env('GCS_ACCESS_KEY_ID') ?? '',
+            'gcs_secret_access_key' => env('GCS_SECRET_ACCESS_KEY') ?? '',
+            'gcs_bucket'            => env('GCS_BUCKET') ?? '',
+            'gcs_endpoint'          => env('GCS_ENDPOINT') ?? 'https://storage.googleapis.com',
+            'gcs_public_url'        => env('GCS_PUBLIC_URL') ?? '',
+
+            // Generic / Custom S3-Compatible
+            'storage_endpoint'      => env('STORAGE_ENDPOINT') ?? '',
+            'storage_access_key'    => env('STORAGE_ACCESS_KEY') ?? '',
+            'storage_secret_key'    => env('STORAGE_SECRET_KEY') ?? '',
+            'storage_region'        => env('STORAGE_REGION') ?? 'us-east-1',
+            'storage_bucket'        => env('STORAGE_BUCKET') ?? '',
+            'storage_public_url'    => env('STORAGE_PUBLIC_URL') ?? '',
+            'storage_use_path_style'=> filter_var(env('STORAGE_USE_PATH_STYLE', true), FILTER_VALIDATE_BOOLEAN),
+        ];
+
         return view('pages/admin/dashboard', [
-            'title'       => 'Panel Administrasi — LeafDeck',
-            'protected'   => 'true',
-            'stats'       => $stats,
-            'users'       => $users,
-            'decks'       => $decks,
-            'ssoConfig'   => $ssoConfig,
-            'currentUser' => [
+            'title'         => 'Panel Administrasi — LeafDeck',
+            'protected'     => 'true',
+            'stats'         => $stats,
+            'users'         => $users,
+            'decks'         => $decks,
+            'ssoConfig'     => $ssoConfig,
+            'storageConfig' => $storageConfig,
+            'currentUser'   => [
                 'nama' => session()->get('nama') ?? 'Administrator',
                 'role' => session()->get('role') ?? 'superadmin',
             ],
@@ -213,6 +251,103 @@ class AdminController extends BaseController
             'latency_ms' => $latencyMs,
             'message'    => 'Server SSO merespons kode HTTP ' . $httpCode . ' (Periksa kembali Kunci API Anda).'
         ]);
+    }
+
+    /**
+     * Simpan Perubahan Konfigurasi Object Storage (Khusus Superadmin)
+     */
+    public function saveStorageSettings()
+    {
+        $role = session()->get('role');
+        if ($role !== 'superadmin') {
+            return $this->response->setJSON([
+                'status'  => false,
+                'message' => 'Akses ditolak: Hanya Super Administrator yang berhak mengubah konfigurasi storage.'
+            ])->setStatusCode(403);
+        }
+
+        $raw = (string) $this->request->getBody();
+        $input = !empty($raw) ? (json_decode($raw, true) ?? []) : [];
+        if (empty($input)) {
+            $input = $this->request->getPost();
+        }
+
+        $fields = [
+            'STORAGE_DRIVER'             => trim($input['storage_driver'] ?? 'local'),
+
+            // AWS S3
+            'S3_KEY'                     => trim($input['s3_key'] ?? ''),
+            'S3_SECRET'                  => trim($input['s3_secret'] ?? ''),
+            'S3_REGION'                  => trim($input['s3_region'] ?? 'ap-southeast-3'),
+            'S3_BUCKET'                  => trim($input['s3_bucket'] ?? ''),
+            'S3_ENDPOINT'                => trim($input['s3_endpoint'] ?? ''),
+            'S3_PUBLIC_URL'              => trim($input['s3_public_url'] ?? ''),
+            'S3_USE_PATH_STYLE_ENDPOINT' => (!empty($input['s3_use_path_style']) && in_array($input['s3_use_path_style'], ['1', 'true', true], true)) ? 'true' : 'false',
+
+            // Cloudflare R2
+            'R2_ACCOUNT_ID'              => trim($input['r2_account_id'] ?? ''),
+            'R2_ACCESS_KEY_ID'           => trim($input['r2_access_key_id'] ?? ''),
+            'R2_SECRET_ACCESS_KEY'       => trim($input['r2_secret_access_key'] ?? ''),
+            'R2_BUCKET'                  => trim($input['r2_bucket'] ?? ''),
+            'R2_PUBLIC_URL'              => trim($input['r2_public_url'] ?? ''),
+
+            // Google Cloud Storage
+            'GCS_PROJECT_ID'             => trim($input['gcs_project_id'] ?? ''),
+            'GCS_ACCESS_KEY_ID'          => trim($input['gcs_access_key_id'] ?? ''),
+            'GCS_SECRET_ACCESS_KEY'      => trim($input['gcs_secret_access_key'] ?? ''),
+            'GCS_BUCKET'                 => trim($input['gcs_bucket'] ?? ''),
+            'GCS_ENDPOINT'               => trim($input['gcs_endpoint'] ?? 'https://storage.googleapis.com'),
+            'GCS_PUBLIC_URL'             => trim($input['gcs_public_url'] ?? ''),
+
+            // Generic / Custom S3-Compatible
+            'STORAGE_ENDPOINT'           => trim($input['storage_endpoint'] ?? ''),
+            'STORAGE_ACCESS_KEY'         => trim($input['storage_access_key'] ?? ''),
+            'STORAGE_SECRET_KEY'         => trim($input['storage_secret_key'] ?? ''),
+            'STORAGE_REGION'             => trim($input['storage_region'] ?? 'us-east-1'),
+            'STORAGE_BUCKET'             => trim($input['storage_bucket'] ?? ''),
+            'STORAGE_PUBLIC_URL'         => trim($input['storage_public_url'] ?? ''),
+            'STORAGE_USE_PATH_STYLE'     => (!empty($input['storage_use_path_style']) && in_array($input['storage_use_path_style'], ['1', 'true', true], true)) ? 'true' : 'false',
+        ];
+
+        $success = $this->updateEnvFile($fields);
+        \App\Services\Storage\StorageManager::flushInstances();
+
+        if ($success) {
+            return $this->response->setJSON([
+                'status'  => true,
+                'message' => 'Konfigurasi Object Storage berhasil disimpan ke sistem!'
+            ]);
+        }
+
+        return $this->response->setJSON([
+            'status'  => false,
+            'message' => 'Gagal memperbarui berkas .env sistem.'
+        ])->setStatusCode(500);
+    }
+
+    /**
+     * Uji Koneksi Live ke Object Storage (Khusus Superadmin)
+     */
+    public function testStorageConnection()
+    {
+        $role = session()->get('role');
+        if ($role !== 'superadmin') {
+            return $this->response->setJSON([
+                'status'  => false,
+                'message' => 'Akses ditolak: Hanya Super Administrator yang berhak menguji koneksi storage.'
+            ])->setStatusCode(403);
+        }
+
+        $raw = (string) $this->request->getBody();
+        $input = !empty($raw) ? (json_decode($raw, true) ?? []) : [];
+        if (empty($input)) {
+            $input = $this->request->getPost();
+        }
+
+        $driver = strtolower(trim($input['storage_driver'] ?? 'local'));
+        $testResult = \App\Services\Storage\StorageManager::testDriver($driver, $input);
+
+        return $this->response->setJSON($testResult);
     }
 
     /**

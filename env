@@ -90,3 +90,43 @@ GOOGLE_LOGIN_ENABLED = false
 leafdeck.appName    = 'LeafDeck'
 leafdeck.schoolName = 'SMAN 3 MJK'
 leafdeck.tokenTTL   = 86400
+
+#--------------------------------------------------------------------
+# OBJECT STORAGE CONFIGURATION (S3, Cloudflare R2, GCS, Umum/MinIO)
+#--------------------------------------------------------------------
+# Driver pilihan: local | s3 | r2 | gcs | custom
+STORAGE_DRIVER = local
+
+# 1. AWS S3 (Amazon Web Services)
+S3_KEY                     = your_aws_access_key_id
+S3_SECRET                  = your_aws_secret_access_key
+S3_REGION                  = ap-southeast-3
+S3_BUCKET                  = your_s3_bucket_name
+S3_ENDPOINT                = 
+S3_PUBLIC_URL              = 
+S3_USE_PATH_STYLE_ENDPOINT = false
+
+# 2. Cloudflare R2 (S3-Compatible)
+R2_ACCOUNT_ID              = your_cloudflare_account_id
+R2_ACCESS_KEY_ID           = your_r2_access_key_id
+R2_SECRET_ACCESS_KEY       = your_r2_secret_access_key
+R2_BUCKET                  = your_r2_bucket_name
+R2_PUBLIC_URL              = https://pub-xxx.r2.dev
+
+# 3. Google Cloud Storage (GCS via HMAC Interoperability S3 SigV4)
+GCS_PROJECT_ID             = your_gcp_project_id
+GCS_ACCESS_KEY_ID          = your_gcs_hmac_access_id
+GCS_SECRET_ACCESS_KEY      = your_gcs_hmac_secret_key
+GCS_BUCKET                 = your_gcs_bucket_name
+GCS_ENDPOINT               = https://storage.googleapis.com
+GCS_PUBLIC_URL             = https://storage.googleapis.com/your_gcs_bucket_name
+
+# 4. Object Storage Umum / S3-Compatible (MinIO, Wasabi, Spaces, IDCloudHost, dll)
+STORAGE_ENDPOINT           = https://s3.idcloudhost.com
+STORAGE_ACCESS_KEY         = your_storage_access_key
+STORAGE_SECRET_KEY         = your_storage_secret_key
+STORAGE_REGION             = us-east-1
+STORAGE_BUCKET             = your_bucket_name
+STORAGE_PUBLIC_URL         = 
+STORAGE_USE_PATH_STYLE     = true
+

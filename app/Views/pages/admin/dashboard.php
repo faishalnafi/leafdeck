@@ -116,6 +116,12 @@
             <span>Integrasi SSO & Google</span>
             <span class="text-[9px] uppercase px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 font-extrabold tracking-wide">Super Admin</span>
         </button>
+        <button onclick="switchTab('tab-storage')" id="btn-tab-storage"
+                class="tab-btn px-4 py-2 rounded-xl text-xs font-bold transition-all text-slate-600 hover:bg-slate-100 flex items-center gap-2 shrink-0">
+            <span class="material-symbols-rounded text-[16px] text-blue-600">cloud_upload</span>
+            <span>Object Storage (S3/R2/GCS)</span>
+            <span class="text-[9px] uppercase px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 font-extrabold tracking-wide">Super Admin</span>
+        </button>
         <?php endif; ?>
         <button onclick="switchTab('tab-system')" id="btn-tab-system"
                 class="tab-btn px-4 py-2 rounded-xl text-xs font-bold transition-all text-slate-600 hover:bg-slate-100 flex items-center gap-2 shrink-0">
@@ -610,6 +616,380 @@
 
         </div>
     </div>
+
+    <!-- Tab 5: Object Storage (S3 / R2 / GCS / Umum) (Khusus Superadmin) -->
+    <div id="tab-storage" class="tab-pane hidden">
+        <div class="space-y-6">
+
+            <!-- Header Card Object Storage -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-2xs p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                        <span class="material-symbols-rounded text-[24px]">cloud_upload</span>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-bold text-slate-800">Konfigurasi Object Storage Terdistribusi</h3>
+                        <p class="text-xs text-slate-400">Pilih dan integrasikan penyimpanan berkas materi & bundle ZIP ke layanan Cloud Object Storage.</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="testStorageConnection()" id="btn-test-storage"
+                            class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border border-blue-200 bg-blue-50/80 hover:bg-blue-100 text-blue-800 font-bold text-xs transition-colors cursor-pointer shadow-2xs">
+                        <span class="material-symbols-rounded text-[18px]">network_check</span>
+                        <span>Uji Koneksi Storage</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Box Hasil Uji Koneksi Live -->
+            <div id="storage-test-result" class="hidden transition-all duration-300"></div>
+
+            <form id="form-storage-settings" onsubmit="saveStorageSettings(event)">
+
+                <!-- Selector Driver Penyimpanan Aktif -->
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-2xs p-5 mb-6">
+                    <label class="block font-bold text-slate-800 text-sm mb-1">
+                        Pilih Driver Penyimpanan Aktif
+                    </label>
+                    <p class="text-xs text-slate-500 mb-4">
+                        Penyimpanan berkas presentasi baru (HTML dan paket ZIP) akan diarahkan ke driver yang Anda pilih.
+                    </p>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                        <!-- 1. Local -->
+                        <label class="relative flex flex-col p-4 rounded-xl border-2 cursor-pointer transition-all hover:border-emerald-400 storage-driver-card <?= ($storageConfig['driver'] === 'local') ? 'border-emerald-600 bg-emerald-50/40' : 'border-slate-200 bg-white' ?>"
+                               onclick="selectStorageDriver('local')">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="material-symbols-rounded text-slate-700 text-[22px]">hard_drive</span>
+                                <input type="radio" name="storage_driver" value="local" <?= ($storageConfig['driver'] === 'local') ? 'checked' : '' ?> class="sr-only">
+                                <span class="w-4 h-4 rounded-full border-2 <?= ($storageConfig['driver'] === 'local') ? 'border-emerald-600 bg-emerald-600' : 'border-slate-300' ?> flex items-center justify-center driver-radio-indicator"></span>
+                            </div>
+                            <span class="text-xs font-bold text-slate-800">Local Disk</span>
+                            <span class="text-[10px] text-slate-400 mt-0.5">Penyimpanan server lokal (uploads/decks)</span>
+                        </label>
+
+                        <!-- 2. S3 -->
+                        <label class="relative flex flex-col p-4 rounded-xl border-2 cursor-pointer transition-all hover:border-amber-400 storage-driver-card <?= ($storageConfig['driver'] === 's3') ? 'border-amber-600 bg-amber-50/40' : 'border-slate-200 bg-white' ?>"
+                               onclick="selectStorageDriver('s3')">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="material-symbols-rounded text-amber-600 text-[22px]">dns</span>
+                                <input type="radio" name="storage_driver" value="s3" <?= ($storageConfig['driver'] === 's3') ? 'checked' : '' ?> class="sr-only">
+                                <span class="w-4 h-4 rounded-full border-2 <?= ($storageConfig['driver'] === 's3') ? 'border-amber-600 bg-amber-600' : 'border-slate-300' ?> flex items-center justify-center driver-radio-indicator"></span>
+                            </div>
+                            <span class="text-xs font-bold text-slate-800">Amazon S3</span>
+                            <span class="text-[10px] text-slate-400 mt-0.5">AWS S3 Multi-Region Cloud</span>
+                        </label>
+
+                        <!-- 3. R2 -->
+                        <label class="relative flex flex-col p-4 rounded-xl border-2 cursor-pointer transition-all hover:border-orange-400 storage-driver-card <?= ($storageConfig['driver'] === 'r2') ? 'border-orange-600 bg-orange-50/40' : 'border-slate-200 bg-white' ?>"
+                               onclick="selectStorageDriver('r2')">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="material-symbols-rounded text-orange-600 text-[22px]">cloud_sync</span>
+                                <input type="radio" name="storage_driver" value="r2" <?= ($storageConfig['driver'] === 'r2') ? 'checked' : '' ?> class="sr-only">
+                                <span class="w-4 h-4 rounded-full border-2 <?= ($storageConfig['driver'] === 'r2') ? 'border-orange-600 bg-orange-600' : 'border-slate-300' ?> flex items-center justify-center driver-radio-indicator"></span>
+                            </div>
+                            <div class="flex items-center gap-1">
+                                <span class="text-xs font-bold text-slate-800">Cloudflare R2</span>
+                                <span class="text-[8px] bg-orange-100 text-orange-700 font-extrabold px-1 rounded">0$ Egress</span>
+                            </div>
+                            <span class="text-[10px] text-slate-400 mt-0.5">Bebas biaya bandwidth + Global CDN</span>
+                        </label>
+
+                        <!-- 4. GCS -->
+                        <label class="relative flex flex-col p-4 rounded-xl border-2 cursor-pointer transition-all hover:border-blue-400 storage-driver-card <?= ($storageConfig['driver'] === 'gcs') ? 'border-blue-600 bg-blue-50/40' : 'border-slate-200 bg-white' ?>"
+                               onclick="selectStorageDriver('gcs')">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="material-symbols-rounded text-blue-600 text-[22px]">cloud</span>
+                                <input type="radio" name="storage_driver" value="gcs" <?= ($storageConfig['driver'] === 'gcs') ? 'checked' : '' ?> class="sr-only">
+                                <span class="w-4 h-4 rounded-full border-2 <?= ($storageConfig['driver'] === 'gcs') ? 'border-blue-600 bg-blue-600' : 'border-slate-300' ?> flex items-center justify-center driver-radio-indicator"></span>
+                            </div>
+                            <span class="text-xs font-bold text-slate-800">Google Cloud (GCS)</span>
+                            <span class="text-[10px] text-slate-400 mt-0.5">GCS via HMAC S3 Interoperability</span>
+                        </label>
+
+                        <!-- 5. Custom / Generic -->
+                        <label class="relative flex flex-col p-4 rounded-xl border-2 cursor-pointer transition-all hover:border-indigo-400 storage-driver-card <?= ($storageConfig['driver'] === 'custom') ? 'border-indigo-600 bg-indigo-50/40' : 'border-slate-200 bg-white' ?>"
+                               onclick="selectStorageDriver('custom')">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="material-symbols-rounded text-indigo-600 text-[22px]">hub</span>
+                                <input type="radio" name="storage_driver" value="custom" <?= ($storageConfig['driver'] === 'custom') ? 'checked' : '' ?> class="sr-only">
+                                <span class="w-4 h-4 rounded-full border-2 <?= ($storageConfig['driver'] === 'custom') ? 'border-indigo-600 bg-indigo-600' : 'border-slate-300' ?> flex items-center justify-center driver-radio-indicator"></span>
+                            </div>
+                            <span class="text-xs font-bold text-slate-800">Umum / S3-Compatible</span>
+                            <span class="text-[10px] text-slate-400 mt-0.5">MinIO, Wasabi, Spaces, IDCloudHost</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Formulir Parameter Penyimpanan (Driver Specific Sections) -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+                    <!-- Kolom 1: Konfigurasi Provider Cloud -->
+                    <div class="space-y-6">
+
+                        <!-- Form 1: AWS S3 -->
+                        <div id="panel-storage-s3" class="bg-white rounded-2xl border border-slate-200 shadow-2xs p-5 space-y-4 text-xs <?= ($storageConfig['driver'] === 's3') ? '' : 'opacity-60' ?>">
+                            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                                <div class="flex items-center gap-2">
+                                    <span class="material-symbols-rounded text-amber-600 text-[20px]">dns</span>
+                                    <h4 class="font-bold text-slate-800 text-sm">Konfigurasi AWS S3</h4>
+                                </div>
+                                <span class="text-[10px] bg-amber-50 text-amber-700 border border-amber-200 font-semibold px-2 py-0.5 rounded-full">Amazon Web Services</span>
+                            </div>
+
+                            <div class="space-y-3">
+                                <div>
+                                    <label class="block font-bold text-slate-700 mb-1">AWS Access Key ID</label>
+                                    <input type="text" name="s3_key" id="input_s3_key" value="<?= esc($storageConfig['s3_key']) ?>"
+                                           placeholder="AKIAIOSFODNN7EXAMPLE"
+                                           class="w-full px-3.5 py-2 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500 font-mono text-xs text-slate-800">
+                                </div>
+                                <div>
+                                    <label class="block font-bold text-slate-700 mb-1">AWS Secret Access Key</label>
+                                    <div class="relative">
+                                        <input type="password" name="s3_secret" id="input_s3_secret" value="<?= esc($storageConfig['s3_secret']) ?>"
+                                               placeholder="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+                                               class="w-full px-3.5 py-2 pr-10 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500 font-mono text-xs text-slate-800">
+                                        <button type="button" onclick="togglePasswordVisibility('input_s3_secret', 'icon-s3-secret')"
+                                                class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 cursor-pointer">
+                                            <span id="icon-s3-secret" class="material-symbols-rounded text-[18px]">visibility</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="block font-bold text-slate-700 mb-1">AWS Region</label>
+                                        <input type="text" name="s3_region" id="input_s3_region" value="<?= esc($storageConfig['s3_region']) ?>"
+                                               placeholder="ap-southeast-3"
+                                               class="w-full px-3.5 py-2 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500 font-mono text-xs text-slate-800">
+                                        <span class="text-[10px] text-slate-400">Contoh: ap-southeast-3 (Jakarta)</span>
+                                    </div>
+                                    <div>
+                                        <label class="block font-bold text-slate-700 mb-1">Bucket Name</label>
+                                        <input type="text" name="s3_bucket" id="input_s3_bucket" value="<?= esc($storageConfig['s3_bucket']) ?>"
+                                               placeholder="leafdeck-decks-bucket"
+                                               class="w-full px-3.5 py-2 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500 font-mono text-xs text-slate-800">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block font-bold text-slate-700 mb-1">Public CDN / Custom URL (Opsional)</label>
+                                    <input type="text" name="s3_public_url" id="input_s3_public_url" value="<?= esc($storageConfig['s3_public_url']) ?>"
+                                           placeholder="https://cdn.sekolah.sch.id"
+                                           class="w-full px-3.5 py-2 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500 font-mono text-xs text-slate-800">
+                                </div>
+                                <div class="flex items-center gap-2 pt-1">
+                                    <input type="checkbox" name="s3_use_path_style" id="input_s3_use_path_style" value="1"
+                                           <?= !empty($storageConfig['s3_use_path_style']) ? 'checked' : '' ?>
+                                           class="rounded border-slate-300 text-amber-600 focus:ring-amber-500">
+                                    <label for="input_s3_use_path_style" class="text-xs text-slate-600 cursor-pointer">
+                                        Gunakan Path-Style Endpoint (misal: <code>s3.region.amazonaws.com/bucket</code>)
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Form 2: Cloudflare R2 -->
+                        <div id="panel-storage-r2" class="bg-white rounded-2xl border border-slate-200 shadow-2xs p-5 space-y-4 text-xs <?= ($storageConfig['driver'] === 'r2') ? '' : 'opacity-60' ?>">
+                            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                                <div class="flex items-center gap-2">
+                                    <span class="material-symbols-rounded text-orange-600 text-[20px]">cloud_sync</span>
+                                    <h4 class="font-bold text-slate-800 text-sm">Konfigurasi Cloudflare R2</h4>
+                                </div>
+                                <span class="text-[10px] bg-orange-50 text-orange-700 border border-orange-200 font-semibold px-2 py-0.5 rounded-full">S3-Compatible (Zero Egress)</span>
+                            </div>
+
+                            <div class="space-y-3">
+                                <div>
+                                    <label class="block font-bold text-slate-700 mb-1">Cloudflare Account ID</label>
+                                    <input type="text" name="r2_account_id" id="input_r2_account_id" value="<?= esc($storageConfig['r2_account_id']) ?>"
+                                           placeholder="e.g. 7f83b1657ff1fc53b92dc18148a1d65b"
+                                           class="w-full px-3.5 py-2 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-orange-500 font-mono text-xs text-slate-800">
+                                    <span class="text-[10px] text-slate-400">Endpoint otomatis: <code>https://&lt;account_id&gt;.r2.cloudflarestorage.com</code></span>
+                                </div>
+                                <div>
+                                    <label class="block font-bold text-slate-700 mb-1">R2 Access Key ID</label>
+                                    <input type="text" name="r2_access_key_id" id="input_r2_access_key_id" value="<?= esc($storageConfig['r2_access_key_id']) ?>"
+                                           placeholder="Token R2 Access Key ID"
+                                           class="w-full px-3.5 py-2 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-orange-500 font-mono text-xs text-slate-800">
+                                </div>
+                                <div>
+                                    <label class="block font-bold text-slate-700 mb-1">R2 Secret Access Key</label>
+                                    <div class="relative">
+                                        <input type="password" name="r2_secret_access_key" id="input_r2_secret_access_key" value="<?= esc($storageConfig['r2_secret_access_key']) ?>"
+                                               placeholder="Token R2 Secret Access Key"
+                                               class="w-full px-3.5 py-2 pr-10 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-orange-500 font-mono text-xs text-slate-800">
+                                        <button type="button" onclick="togglePasswordVisibility('input_r2_secret_access_key', 'icon-r2-secret')"
+                                                class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 cursor-pointer">
+                                            <span id="icon-r2-secret" class="material-symbols-rounded text-[18px]">visibility</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="block font-bold text-slate-700 mb-1">R2 Bucket Name</label>
+                                        <input type="text" name="r2_bucket" id="input_r2_bucket" value="<?= esc($storageConfig['r2_bucket']) ?>"
+                                               placeholder="leafdeck-r2-bucket"
+                                               class="w-full px-3.5 py-2 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-orange-500 font-mono text-xs text-slate-800">
+                                    </div>
+                                    <div>
+                                        <label class="block font-bold text-slate-700 mb-1">Public URL / Domain R2</label>
+                                        <input type="text" name="r2_public_url" id="input_r2_public_url" value="<?= esc($storageConfig['r2_public_url']) ?>"
+                                               placeholder="https://pub-xxxx.r2.dev"
+                                               class="w-full px-3.5 py-2 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-orange-500 font-mono text-xs text-slate-800">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Kolom 2: GCS & Umum/MinIO -->
+                    <div class="space-y-6">
+
+                        <!-- Form 3: Google Cloud Storage (GCS) -->
+                        <div id="panel-storage-gcs" class="bg-white rounded-2xl border border-slate-200 shadow-2xs p-5 space-y-4 text-xs <?= ($storageConfig['driver'] === 'gcs') ? '' : 'opacity-60' ?>">
+                            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                                <div class="flex items-center gap-2">
+                                    <span class="material-symbols-rounded text-blue-600 text-[20px]">cloud</span>
+                                    <h4 class="font-bold text-slate-800 text-sm">Konfigurasi Google Cloud Storage (GCS)</h4>
+                                </div>
+                                <span class="text-[10px] bg-blue-50 text-blue-700 border border-blue-200 font-semibold px-2 py-0.5 rounded-full">GCP Cloud Storage</span>
+                            </div>
+
+                            <div class="space-y-3">
+                                <div>
+                                    <label class="block font-bold text-slate-700 mb-1">GCP Project ID</label>
+                                    <input type="text" name="gcs_project_id" id="input_gcs_project_id" value="<?= esc($storageConfig['gcs_project_id']) ?>"
+                                           placeholder="e.g. leafdeck-school-2026"
+                                           class="w-full px-3.5 py-2 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-xs text-slate-800">
+                                </div>
+                                <div>
+                                    <label class="block font-bold text-slate-700 mb-1">GCS HMAC Access Key</label>
+                                    <input type="text" name="gcs_access_key_id" id="input_gcs_access_key_id" value="<?= esc($storageConfig['gcs_access_key_id']) ?>"
+                                           placeholder="GOOG1EEXAMPLEKEYID"
+                                           class="w-full px-3.5 py-2 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-xs text-slate-800">
+                                    <span class="text-[10px] text-slate-400">Dibuat via Google Cloud Console &rarr; Cloud Storage &rarr; Settings &rarr; Interoperability &rarr; Create Key</span>
+                                </div>
+                                <div>
+                                    <label class="block font-bold text-slate-700 mb-1">GCS HMAC Secret Key</label>
+                                    <div class="relative">
+                                        <input type="password" name="gcs_secret_access_key" id="input_gcs_secret_access_key" value="<?= esc($storageConfig['gcs_secret_access_key']) ?>"
+                                               placeholder="GCS HMAC Secret Key"
+                                               class="w-full px-3.5 py-2 pr-10 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-xs text-slate-800">
+                                        <button type="button" onclick="togglePasswordVisibility('input_gcs_secret_access_key', 'icon-gcs-secret')"
+                                                class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 cursor-pointer">
+                                            <span id="icon-gcs-secret" class="material-symbols-rounded text-[18px]">visibility</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="block font-bold text-slate-700 mb-1">GCS Bucket Name</label>
+                                        <input type="text" name="gcs_bucket" id="input_gcs_bucket" value="<?= esc($storageConfig['gcs_bucket']) ?>"
+                                               placeholder="leafdeck-gcs-bucket"
+                                               class="w-full px-3.5 py-2 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-xs text-slate-800">
+                                    </div>
+                                    <div>
+                                        <label class="block font-bold text-slate-700 mb-1">Public URL (Opsional)</label>
+                                        <input type="text" name="gcs_public_url" id="input_gcs_public_url" value="<?= esc($storageConfig['gcs_public_url']) ?>"
+                                               placeholder="https://storage.googleapis.com/leafdeck-gcs-bucket"
+                                               class="w-full px-3.5 py-2 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-xs text-slate-800">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Form 4: Umum / S3-Compatible (MinIO, Wasabi, Spaces, IDCloudHost, dll) -->
+                        <div id="panel-storage-custom" class="bg-white rounded-2xl border border-slate-200 shadow-2xs p-5 space-y-4 text-xs <?= ($storageConfig['driver'] === 'custom') ? '' : 'opacity-60' ?>">
+                            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                                <div class="flex items-center gap-2">
+                                    <span class="material-symbols-rounded text-indigo-600 text-[20px]">hub</span>
+                                    <h4 class="font-bold text-slate-800 text-sm">Object Storage Umum / S3-Compatible</h4>
+                                </div>
+                                <span class="text-[10px] bg-indigo-50 text-indigo-700 border border-indigo-200 font-semibold px-2 py-0.5 rounded-full">MinIO / Spaces / Wasabi / IDCloudHost</span>
+                            </div>
+
+                            <div class="space-y-3">
+                                <div>
+                                    <label class="block font-bold text-slate-700 mb-1">Custom S3 Endpoint URL</label>
+                                    <input type="text" name="storage_endpoint" id="input_storage_endpoint" value="<?= esc($storageConfig['storage_endpoint']) ?>"
+                                           placeholder="https://s3.idcloudhost.com atau http://minio.local:9000"
+                                           class="w-full px-3.5 py-2 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono text-xs text-slate-800">
+                                </div>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="block font-bold text-slate-700 mb-1">Access Key</label>
+                                        <input type="text" name="storage_access_key" id="input_storage_access_key" value="<?= esc($storageConfig['storage_access_key']) ?>"
+                                               placeholder="Access Key"
+                                               class="w-full px-3.5 py-2 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono text-xs text-slate-800">
+                                    </div>
+                                    <div>
+                                        <label class="block font-bold text-slate-700 mb-1">Secret Key</label>
+                                        <div class="relative">
+                                            <input type="password" name="storage_secret_key" id="input_storage_secret_key" value="<?= esc($storageConfig['storage_secret_key']) ?>"
+                                                   placeholder="Secret Key"
+                                                   class="w-full px-3.5 py-2 pr-10 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono text-xs text-slate-800">
+                                            <button type="button" onclick="togglePasswordVisibility('input_storage_secret_key', 'icon-custom-secret')"
+                                                    class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 cursor-pointer">
+                                                <span id="icon-custom-secret" class="material-symbols-rounded text-[18px]">visibility</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="block font-bold text-slate-700 mb-1">Region</label>
+                                        <input type="text" name="storage_region" id="input_storage_region" value="<?= esc($storageConfig['storage_region']) ?>"
+                                               placeholder="us-east-1"
+                                               class="w-full px-3.5 py-2 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono text-xs text-slate-800">
+                                    </div>
+                                    <div>
+                                        <label class="block font-bold text-slate-700 mb-1">Bucket Name</label>
+                                        <input type="text" name="storage_bucket" id="input_storage_bucket" value="<?= esc($storageConfig['storage_bucket']) ?>"
+                                               placeholder="nama-bucket"
+                                               class="w-full px-3.5 py-2 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono text-xs text-slate-800">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block font-bold text-slate-700 mb-1">Public CDN / Custom URL (Opsional)</label>
+                                    <input type="text" name="storage_public_url" id="input_storage_public_url" value="<?= esc($storageConfig['storage_public_url']) ?>"
+                                           placeholder="https://cdn.sekolah.sch.id"
+                                           class="w-full px-3.5 py-2 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono text-xs text-slate-800">
+                                </div>
+                                <div class="flex items-center gap-2 pt-1">
+                                    <input type="checkbox" name="storage_use_path_style" id="input_storage_use_path_style" value="1"
+                                           <?= !empty($storageConfig['storage_use_path_style']) ? 'checked' : '' ?>
+                                           class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                                    <label for="input_storage_use_path_style" class="text-xs text-slate-600 cursor-pointer">
+                                        Gunakan Path-Style Endpoint (direkomendasikan untuk MinIO: <code>endpoint/bucket</code>)
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <!-- Footer Save Action -->
+                <div class="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 p-5 bg-white border border-slate-200 rounded-2xl shadow-2xs">
+                    <div class="flex items-center gap-2 text-xs text-slate-500">
+                        <span class="material-symbols-rounded text-blue-600 text-[18px]">verified_user</span>
+                        <span>Konfigurasi disimpan langsung ke sistem <code>.env</code> dan berlaku untuk seluruh unggahan LeafDeck.</span>
+                    </div>
+
+                    <div class="flex items-center gap-3 w-full sm:w-auto">
+                        <button type="submit" id="btn-save-storage"
+                                class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-sm hover:shadow transition-all cursor-pointer">
+                            <span class="material-symbols-rounded text-[18px]">save</span>
+                            <span>Simpan Konfigurasi Storage</span>
+                        </button>
+                    </div>
+                </div>
+            </form>
+
+        </div>
+    </div>
     <?php endif; ?>
 
 </div>
@@ -874,6 +1254,240 @@ function updateGoogleToggleStatus(checkbox) {
     } else {
         badge.className = 'text-[10px] px-2 py-0.5 rounded-full font-semibold bg-slate-200 text-slate-600 border border-slate-300';
         badge.textContent = 'Nonaktif (Disabled)';
+    }
+}
+
+/**
+ * Pilih Driver Penyimpanan Aktif & Update Highlight Card
+ */
+function selectStorageDriver(driver) {
+    document.querySelectorAll('input[name="storage_driver"]').forEach(radio => {
+        radio.checked = (radio.value === driver);
+    });
+
+    // Update styling cards
+    document.querySelectorAll('.storage-driver-card').forEach(card => {
+        card.classList.remove('border-emerald-600', 'bg-emerald-50/40', 'border-amber-600', 'bg-amber-50/40', 'border-orange-600', 'bg-orange-50/40', 'border-blue-600', 'bg-blue-50/40', 'border-indigo-600', 'bg-indigo-50/40');
+        card.classList.add('border-slate-200', 'bg-white');
+        const indicator = card.querySelector('.driver-radio-indicator');
+        if (indicator) {
+            indicator.className = 'w-4 h-4 rounded-full border-2 border-slate-300 flex items-center justify-center driver-radio-indicator';
+        }
+    });
+
+    const activeRadio = document.querySelector(`input[name="storage_driver"][value="${driver}"]`);
+    if (activeRadio) {
+        const card = activeRadio.closest('.storage-driver-card');
+        if (card) {
+            card.classList.remove('border-slate-200', 'bg-white');
+            const colorClass = driver === 'local' ? 'emerald' : (driver === 's3' ? 'amber' : (driver === 'r2' ? 'orange' : (driver === 'gcs' ? 'blue' : 'indigo')));
+            card.classList.add(`border-${colorClass}-600`, `bg-${colorClass}-50/40`);
+            const indicator = card.querySelector('.driver-radio-indicator');
+            if (indicator) {
+                indicator.className = `w-4 h-4 rounded-full border-2 border-${colorClass}-600 bg-${colorClass}-600 flex items-center justify-center driver-radio-indicator`;
+            }
+        }
+    }
+
+    // Update panels opacity
+    ['s3', 'r2', 'gcs', 'custom'].forEach(p => {
+        const panel = document.getElementById(`panel-storage-${p}`);
+        if (panel) {
+            if (driver === p) {
+                panel.classList.remove('opacity-60');
+            } else {
+                panel.classList.add('opacity-60');
+            }
+        }
+    });
+}
+
+/**
+ * Simpan Konfigurasi Object Storage
+ */
+async function saveStorageSettings(e) {
+    e.preventDefault();
+    const btn = document.getElementById('btn-save-storage');
+    const originalText = btn.innerHTML;
+
+    btn.disabled = true;
+    btn.innerHTML = `
+        <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        <span>Menyimpan Storage...</span>
+    `;
+
+    const selectedDriver = document.querySelector('input[name="storage_driver"]:checked')?.value || 'local';
+
+    const data = {
+        storage_driver: selectedDriver,
+
+        // S3
+        s3_key: document.getElementById('input_s3_key')?.value,
+        s3_secret: document.getElementById('input_s3_secret')?.value,
+        s3_region: document.getElementById('input_s3_region')?.value,
+        s3_bucket: document.getElementById('input_s3_bucket')?.value,
+        s3_public_url: document.getElementById('input_s3_public_url')?.value,
+        s3_use_path_style: document.getElementById('input_s3_use_path_style')?.checked ? 'true' : 'false',
+
+        // R2
+        r2_account_id: document.getElementById('input_r2_account_id')?.value,
+        r2_access_key_id: document.getElementById('input_r2_access_key_id')?.value,
+        r2_secret_access_key: document.getElementById('input_r2_secret_access_key')?.value,
+        r2_bucket: document.getElementById('input_r2_bucket')?.value,
+        r2_public_url: document.getElementById('input_r2_public_url')?.value,
+
+        // GCS
+        gcs_project_id: document.getElementById('input_gcs_project_id')?.value,
+        gcs_access_key_id: document.getElementById('input_gcs_access_key_id')?.value,
+        gcs_secret_access_key: document.getElementById('input_gcs_secret_access_key')?.value,
+        gcs_bucket: document.getElementById('input_gcs_bucket')?.value,
+        gcs_public_url: document.getElementById('input_gcs_public_url')?.value,
+
+        // Custom / Generic S3
+        storage_endpoint: document.getElementById('input_storage_endpoint')?.value,
+        storage_access_key: document.getElementById('input_storage_access_key')?.value,
+        storage_secret_key: document.getElementById('input_storage_secret_key')?.value,
+        storage_region: document.getElementById('input_storage_region')?.value,
+        storage_bucket: document.getElementById('input_storage_bucket')?.value,
+        storage_public_url: document.getElementById('input_storage_public_url')?.value,
+        storage_use_path_style: document.getElementById('input_storage_use_path_style')?.checked ? 'true' : 'false',
+    };
+
+    try {
+        const res = await fetch('/admin/settings/storage', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify(data)
+        });
+        const json = await res.json();
+
+        if (json.status) {
+            Toast.show(json.message || 'Konfigurasi Object Storage berhasil disimpan!', 'success');
+        } else {
+            Toast.show(json.message || 'Gagal menyimpan konfigurasi storage', 'error');
+        }
+    } catch (err) {
+        console.error(err);
+        Toast.show('Terjadi gangguan saat menyimpan ke sistem', 'error');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    }
+}
+
+/**
+ * Uji Koneksi Live ke Object Storage
+ */
+async function testStorageConnection() {
+    const btn = document.getElementById('btn-test-storage');
+    const resultBox = document.getElementById('storage-test-result');
+    const originalText = btn.innerHTML;
+
+    const selectedDriver = document.querySelector('input[name="storage_driver"]:checked')?.value || 'local';
+
+    btn.disabled = true;
+    btn.innerHTML = `
+        <svg class="animate-spin -ml-1 mr-1 h-3.5 w-3.5 text-blue-800" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        <span>Menguji ${selectedDriver.toUpperCase()}...</span>
+    `;
+
+    const data = {
+        storage_driver: selectedDriver,
+
+        // S3
+        s3_key: document.getElementById('input_s3_key')?.value,
+        s3_secret: document.getElementById('input_s3_secret')?.value,
+        s3_region: document.getElementById('input_s3_region')?.value,
+        s3_bucket: document.getElementById('input_s3_bucket')?.value,
+        s3_public_url: document.getElementById('input_s3_public_url')?.value,
+        s3_use_path_style: document.getElementById('input_s3_use_path_style')?.checked,
+
+        // R2
+        r2_account_id: document.getElementById('input_r2_account_id')?.value,
+        r2_access_key_id: document.getElementById('input_r2_access_key_id')?.value,
+        r2_secret_access_key: document.getElementById('input_r2_secret_access_key')?.value,
+        r2_bucket: document.getElementById('input_r2_bucket')?.value,
+        r2_public_url: document.getElementById('input_r2_public_url')?.value,
+
+        // GCS
+        gcs_project_id: document.getElementById('input_gcs_project_id')?.value,
+        gcs_access_key_id: document.getElementById('input_gcs_access_key_id')?.value,
+        gcs_secret_access_key: document.getElementById('input_gcs_secret_access_key')?.value,
+        gcs_bucket: document.getElementById('input_gcs_bucket')?.value,
+        gcs_public_url: document.getElementById('input_gcs_public_url')?.value,
+
+        // Custom
+        storage_endpoint: document.getElementById('input_storage_endpoint')?.value,
+        storage_access_key: document.getElementById('input_storage_access_key')?.value,
+        storage_secret_key: document.getElementById('input_storage_secret_key')?.value,
+        storage_region: document.getElementById('input_storage_region')?.value,
+        storage_bucket: document.getElementById('input_storage_bucket')?.value,
+        storage_public_url: document.getElementById('input_storage_public_url')?.value,
+        storage_use_path_style: document.getElementById('input_storage_use_path_style')?.checked,
+    };
+
+    try {
+        const res = await fetch('/admin/settings/test-storage', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify(data)
+        });
+        const json = await res.json();
+
+        resultBox.classList.remove('hidden');
+
+        if (json.status) {
+            resultBox.innerHTML = `
+                <div class="p-4 rounded-2xl bg-blue-50 border border-blue-200 text-blue-900 flex items-start gap-3">
+                    <span class="material-symbols-rounded text-blue-600 text-[22px] shrink-0 mt-0.5">check_circle</span>
+                    <div class="flex-1 text-xs">
+                        <p class="font-bold text-sm text-blue-950">${json.message}</p>
+                        <p class="text-blue-800 mt-1">Driver: <strong>${selectedDriver.toUpperCase()}</strong> &bull; Latensi: ${json.latency_ms} ms &bull; Status: ${json.http_code ? 'HTTP ' + json.http_code : 'OK'}</p>
+                    </div>
+                </div>
+            `;
+            Toast.show('Koneksi Object Storage terverifikasi sukses!', 'success');
+        } else {
+            resultBox.innerHTML = `
+                <div class="p-4 rounded-2xl bg-red-50 border border-red-200 text-red-900 flex items-start gap-3">
+                    <span class="material-symbols-rounded text-red-600 text-[22px] shrink-0 mt-0.5">error</span>
+                    <div class="flex-1 text-xs">
+                        <p class="font-bold text-sm text-red-950">Gagal Terhubung ke Object Storage</p>
+                        <p class="text-red-800 mt-1">${json.message}</p>
+                        <p class="text-red-700/80 text-[11px] mt-1">Petunjuk: Periksa kembali Access Key, Secret Key, Nama Bucket, dan izin IAM / Bucket Policy Anda.</p>
+                    </div>
+                </div>
+            `;
+            Toast.show('Uji koneksi storage gagal: ' + json.message, 'error');
+        }
+    } catch (err) {
+        console.error(err);
+        resultBox.classList.remove('hidden');
+        resultBox.innerHTML = `
+            <div class="p-4 rounded-2xl bg-red-50 border border-red-200 text-red-900 flex items-start gap-3">
+                <span class="material-symbols-rounded text-red-600 text-[22px] shrink-0 mt-0.5">wifi_off</span>
+                <div class="flex-1 text-xs">
+                    <p class="font-bold text-sm text-red-950">Terjadi Kesalahan Jaringan</p>
+                    <p class="text-red-800 mt-1">Tidak dapat mengirim permintaan ke server LeafDeck.</p>
+                </div>
+            </div>
+        `;
+        Toast.show('Gagal melakukan uji koneksi', 'error');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
     }
 }
 </script>

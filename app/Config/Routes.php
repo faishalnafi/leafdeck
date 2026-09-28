@@ -62,6 +62,8 @@ $routes->get('admin',                          'Web\AdminController::index');
 $routes->get('admin/dashboard',                'Web\AdminController::index');
 $routes->post('admin/settings/sso',            'Web\AdminController::saveSsoSettings');
 $routes->post('admin/settings/test-sso',       'Web\AdminController::testSsoConnection');
+$routes->post('admin/settings/storage',        'Web\AdminController::saveStorageSettings');
+$routes->post('admin/settings/test-storage',   'Web\AdminController::testStorageConnection');
 
 // Raw Deck HTML renderer for iframe
 $routes->get('raw-deck/(:segment)', 'Web\ViewerController::rawHtml/$1');
