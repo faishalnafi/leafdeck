@@ -38,6 +38,14 @@ class StorageManager
     }
 
     /**
+     * Daftarkan custom instance driver (berguna untuk testing atau ekstensi dinamis)
+     */
+    public static function setDriver(string $name, StorageDriverInterface $driver): void
+    {
+        self::$instances[strtolower($name)] = $driver;
+    }
+
+    /**
      * Reset instance cache (misal setelah perubahan .env)
      */
     public static function flushInstances(): void

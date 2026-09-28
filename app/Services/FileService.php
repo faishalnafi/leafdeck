@@ -28,8 +28,9 @@ class FileService
     public function saveHtml($file, string $nanoId): string
     {
         $fileName = $nanoId . '.html';
-        $destination = $this->uploadPath . $fileName;
+        $relPath  = 'uploads/decks/' . $fileName;
 
+        $content = '';
         if ($file instanceof UploadedFile) {
             if (!$file->isValid()) {
                 throw new RuntimeException('File upload tidak valid: ' . $file->getErrorString());
@@ -40,22 +41,28 @@ class FileService
                 throw new RuntimeException('Hanya file berekstensi .html atau .htm yang diizinkan');
             }
 
-            $file->move($this->uploadPath, $fileName, true);
+            $content = file_get_contents($file->getTempName());
+            if ($content === false) {
+                throw new RuntimeException('Gagal membaca konten file unggahan.');
+            }
         } elseif (is_string($file)) {
-            file_put_contents($destination, $file);
+            $content = $file;
         } else {
             throw new RuntimeException('Tipe konten file tidak didukung');
         }
 
-        $relPath = 'uploads/decks/' . $fileName;
-
-        // Jika object storage aktif (s3, r2, gcs, custom), unggah ke remote storage
+        // Jika object storage aktif (s3, r2, gcs, custom), langsung lempar ke remote storage tanpa simpan di lokal
         if (StorageManager::getDefaultDriver() !== 'local') {
-            $content = file_get_contents($destination);
-            if ($content !== false) {
-                StorageManager::disk()->put($relPath, $content, 'text/html; charset=UTF-8');
+            $uploaded = StorageManager::disk()->put($relPath, $content, 'text/html; charset=UTF-8');
+            if (!$uploaded) {
+                throw new RuntimeException('Gagal mengunggah file ke Object Storage.');
             }
+            return $relPath;
         }
+
+        // Driver lokal: simpan ke direktori lokal public/uploads/decks/
+        $destination = $this->uploadPath . $fileName;
+        file_put_contents($destination, $content);
 
         return $relPath;
     }
@@ -73,7 +80,18 @@ class FileService
             throw new RuntimeException('Ekstensi PHP ZipArchive tidak aktif pada server.');
         }
 
-        $targetDir = $this->uploadPath . $nanoId . DIRECTORY_SEPARATOR;
+        $isRemote = (StorageManager::getDefaultDriver() !== 'local');
+
+        // Jika remote, gunakan direktori temporer terisolasi di writable/temp/
+        $tempBase = WRITEPATH . 'temp' . DIRECTORY_SEPARATOR;
+        if (!is_dir($tempBase)) {
+            mkdir($tempBase, 0755, true);
+        }
+
+        $targetDir = $isRemote
+            ? ($tempBase . 'extract_' . $nanoId . DIRECTORY_SEPARATOR)
+            : ($this->uploadPath . $nanoId . DIRECTORY_SEPARATOR);
+
         if (!is_dir($targetDir)) {
             mkdir($targetDir, 0755, true);
         }
@@ -113,31 +131,34 @@ class FileService
         $zip->close();
 
         // Cari berkas entry HTML utama
-        $entryRelPath = null;
+        $entrySubPath = null;
         if (file_exists($targetDir . 'index.html')) {
-            $entryRelPath = 'uploads/decks/' . $nanoId . '/index.html';
+            $entrySubPath = 'index.html';
         } elseif (file_exists($targetDir . 'index.htm')) {
-            $entryRelPath = 'uploads/decks/' . $nanoId . '/index.htm';
+            $entrySubPath = 'index.htm';
         } else {
             // Cari di subfolder pertama jika ZIP membungkus seluruh isi dalam satu folder induk
             $htmlFiles = glob($targetDir . '*' . DIRECTORY_SEPARATOR . 'index.html');
             if (!empty($htmlFiles)) {
                 $subFolder = basename(dirname($htmlFiles[0]));
-                $entryRelPath = 'uploads/decks/' . $nanoId . '/' . $subFolder . '/index.html';
+                $entrySubPath = $subFolder . '/index.html';
             } else {
                 $anyHtml = glob($targetDir . '*.html');
                 if (!empty($anyHtml)) {
-                    $entryRelPath = 'uploads/decks/' . $nanoId . '/' . basename($anyHtml[0]);
+                    $entrySubPath = basename($anyHtml[0]);
                 }
             }
         }
 
-        if (!$entryRelPath) {
+        if (!$entrySubPath) {
+            $this->deleteDirectoryRecursive($targetDir);
             throw new RuntimeException('Berkas HTML utama (index.html) tidak ditemukan di dalam paket ZIP.');
         }
 
+        $entryRelPath = 'uploads/decks/' . $nanoId . '/' . $entrySubPath;
+
         // Deteksi judul dari tag <title>
-        $fullHtmlPath = FCPATH . str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $entryRelPath);
+        $fullHtmlPath = $targetDir . str_replace('/', DIRECTORY_SEPARATOR, $entrySubPath);
         $detectedTitle = null;
         if (file_exists($fullHtmlPath)) {
             $htmlHead = file_get_contents($fullHtmlPath, false, null, 0, 8192);
@@ -163,15 +184,21 @@ class FileService
         foreach ($thumbCandidates as $cand) {
             $candPath = $entryDir . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $cand);
             if (file_exists($candPath)) {
-                $relCand = str_replace(rtrim(FCPATH, '/\\'), '', $candPath);
-                $detectedThumb = '/' . str_replace('\\', '/', ltrim($relCand, '/\\'));
+                if ($isRemote) {
+                    $detectedThumb = StorageManager::disk()->url('uploads/decks/' . $nanoId . '/' . $cand);
+                } else {
+                    $relCand = str_replace(rtrim(FCPATH, '/\\'), '', $candPath);
+                    $detectedThumb = '/' . str_replace('\\', '/', ltrim($relCand, '/\\'));
+                }
                 break;
             }
         }
 
         // Jika object storage aktif (s3, r2, gcs, custom), unggah seluruh berkas bundle ke remote storage
-        if (StorageManager::getDefaultDriver() !== 'local') {
+        if ($isRemote) {
             $this->syncDirectoryToStorage($targetDir, 'uploads/decks/' . $nanoId);
+            // Hapus total direktori temporer lokal: TIDAK MENYISAKAN BERKAS DI LOKAL!
+            $this->deleteDirectoryRecursive($targetDir);
         }
 
         return [
@@ -186,14 +213,17 @@ class FileService
      */
     public function readHtml(string $filePath): ?string
     {
+        // Ambil dari object storage jika driver aktif bukan local
+        if (StorageManager::getDefaultDriver() !== 'local') {
+            $remote = StorageManager::disk()->get($filePath);
+            if ($remote !== null) {
+                return $remote;
+            }
+        }
+
         $fullPath = $this->getAbsolutePath($filePath);
         if (file_exists($fullPath)) {
             return file_get_contents($fullPath);
-        }
-
-        // Ambil dari object storage jika driver aktif bukan local
-        if (StorageManager::getDefaultDriver() !== 'local') {
-            return StorageManager::disk()->get($filePath);
         }
 
         return null;

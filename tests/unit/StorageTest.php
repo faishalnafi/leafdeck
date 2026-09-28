@@ -146,4 +146,138 @@ final class StorageTest extends CIUnitTestCase
         $this->assertFalse($res['status']);
         $this->assertStringContainsString('belum lengkap', $res['message']);
     }
+
+    public function testHtmlUploadToRemoteStorageDoesNotStoreLocally(): void
+    {
+        putenv('STORAGE_DRIVER=r2');
+        $_ENV['STORAGE_DRIVER'] = 'r2';
+
+        $mock = new InMemoryStorageDriver();
+        StorageManager::setDriver('r2', $mock);
+
+        $fileService = new \App\Services\FileService();
+        $nanoId = 'remote_test_' . bin2hex(random_bytes(4));
+        $content = '<html><body><h1>Materi Hanya di R2 Cloud</h1></body></html>';
+
+        $relPath = $fileService->saveHtml($content, $nanoId);
+
+        // 1. Berkas harus tersimpan di Object Storage
+        $this->assertTrue($mock->has($relPath));
+        $this->assertSame($content, $mock->get($relPath));
+
+        // 2. Berkas TIDAK BOLEH tersimpan di lokal (FCPATH/uploads/decks/...)!
+        $localPath = FCPATH . str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $relPath);
+        $this->assertFileDoesNotExist($localPath);
+
+        // 3. readHtml berhasil membaca dari Object Storage
+        $this->assertSame($content, $fileService->readHtml($relPath));
+
+        // 4. delete menghapus dari Object Storage
+        $fileService->delete($relPath);
+        $this->assertFalse($mock->has($relPath));
+
+        putenv('STORAGE_DRIVER=local');
+        $_ENV['STORAGE_DRIVER'] = 'local';
+    }
+
+    public function testZipUploadToRemoteStorageDoesNotStoreLocally(): void
+    {
+        putenv('STORAGE_DRIVER=r2');
+        $_ENV['STORAGE_DRIVER'] = 'r2';
+
+        $mock = new InMemoryStorageDriver();
+        StorageManager::setDriver('r2', $mock);
+
+        $nanoId = 'zip_remote_' . bin2hex(random_bytes(4));
+        $tempZip = WRITEPATH . 'test_pkg_' . $nanoId . '.zip';
+
+        $zip = new \ZipArchive();
+        $zip->open($tempZip, \ZipArchive::CREATE | \ZipArchive::OVERWRITE);
+        $zip->addFromString('index.html', '<!DOCTYPE html><html><head><title>E-Book Kimia Organik</title></head><body><h1>Halaman 1</h1></body></html>');
+        $zip->addFromString('files/thumb/1.jpg', 'fake-jpg-content');
+        $zip->close();
+
+        $fileService = new \App\Services\FileService();
+        $res = $fileService->saveZipPackage($tempZip, $nanoId);
+
+        // 1. Berkas entry terunggah ke Object Storage
+        $this->assertSame('uploads/decks/' . $nanoId . '/index.html', $res['file_path']);
+        $this->assertSame('E-Book Kimia Organik', $res['title']);
+        $this->assertTrue($mock->has('uploads/decks/' . $nanoId . '/index.html'));
+        $this->assertTrue($mock->has('uploads/decks/' . $nanoId . '/files/thumb/1.jpg'));
+
+        // 2. Folder lokal di public/uploads/decks TIDAK BOLEH dibuat atau disimpan!
+        $localDeckDir = FCPATH . 'uploads' . DIRECTORY_SEPARATOR . 'decks' . DIRECTORY_SEPARATOR . $nanoId;
+        $this->assertDirectoryDoesNotExist($localDeckDir);
+
+        // 3. Folder temp ekstraksi di writable/temp/extract_... TIDAK BOLEH tersisa
+        $tempExtractDir = WRITEPATH . 'temp' . DIRECTORY_SEPARATOR . 'extract_' . $nanoId;
+        $this->assertDirectoryDoesNotExist($tempExtractDir);
+
+        // 4. Thumbnail mengarah ke URL Cloudflare R2
+        $this->assertStringContainsString('https://pub-mock.r2.dev/uploads/decks/' . $nanoId, $res['thumbnail']);
+
+        // 5. Delete menghapus seluruh folder bundle dari remote Object Storage
+        $fileService->delete($res['file_path']);
+        $this->assertFalse($mock->has('uploads/decks/' . $nanoId . '/index.html'));
+        $this->assertFalse($mock->has('uploads/decks/' . $nanoId . '/files/thumb/1.jpg'));
+
+        if (file_exists($tempZip)) {
+            unlink($tempZip);
+        }
+
+        putenv('STORAGE_DRIVER=local');
+        $_ENV['STORAGE_DRIVER'] = 'local';
+    }
+}
+
+/**
+ * Mock Driver In-Memory untuk menguji perilaku transmisi langsung ke cloud
+ */
+class InMemoryStorageDriver implements \App\Services\Storage\StorageDriverInterface
+{
+    public array $files = [];
+
+    public function put(string $path, string $content, string $mimeType = 'text/html'): bool
+    {
+        $this->files[$path] = $content;
+        return true;
+    }
+
+    public function get(string $path): ?string
+    {
+        return $this->files[$path] ?? null;
+    }
+
+    public function has(string $path): bool
+    {
+        return isset($this->files[$path]);
+    }
+
+    public function delete(string $path): bool
+    {
+        unset($this->files[$path]);
+        return true;
+    }
+
+    public function deleteDirectory(string $prefix): bool
+    {
+        $prefix = trim($prefix, '/') . '/';
+        foreach (array_keys($this->files) as $key) {
+            if (str_starts_with($key, $prefix)) {
+                unset($this->files[$key]);
+            }
+        }
+        return true;
+    }
+
+    public function url(string $path): string
+    {
+        return 'https://pub-mock.r2.dev/' . ltrim($path, '/');
+    }
+
+    public function testConnection(): array
+    {
+        return ['status' => true, 'latency_ms' => 1.5, 'message' => 'OK'];
+    }
 }
